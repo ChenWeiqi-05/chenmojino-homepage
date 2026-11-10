@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>chenmojino · 个人主页</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: #070d0b;
+    color: #e8f5ef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-x: hidden;
+    position: relative;
+  }
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(110px);
+    opacity: .4;
+    z-index: 0;
+    animation: float 16s ease-in-out infinite alternate;
+  }
+  .blob.b1 { width: 440px; height: 440px; background: #059669; top: -140px; left: -120px; }
+  .blob.b2 { width: 400px; height: 400px; background: #d97706; bottom: -150px; right: -110px; animation-delay: -6s; }
+  .blob.b3 { width: 280px; height: 280px; background: #0d9488; top: 45%; left: 62%; animation-delay: -10s; }
+  @keyframes float { from { transform: translate(0,0) scale(1); } to { transform: translate(44px,-44px) scale(1.14); } }
+  .card {
+    position: relative;
+    z-index: 1;
+    width: min(880px, 92vw);
+    margin: 48px 0;
+    padding: 56px 48px;
+    border-radius: 28px;
+    background: rgba(10, 22, 18, .68);
+    border: 1px solid rgba(16, 185, 129, .18);
+    backdrop-filter: blur(24px);
+    box-shadow: 0 30px 90px rgba(0,0,0,.6), 0 0 0 1px rgba(245,158,11,.05) inset;
+  }
+  .avatar {
+    width: 96px; height: 96px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10b981, #f59e0b);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 34px; font-weight: 700;
+    color: #06231b;
+    margin-bottom: 24px;
+    box-shadow: 0 12px 36px rgba(16,185,129,.45);
+    letter-spacing: 1px;
+  }
+  h1 { font-size: clamp(32px, 5vw, 50px); letter-spacing: 1px; }
+  h1 span { background: linear-gradient(90deg, #34d399, #fbbf24, #2dd4bf); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .tagline { margin-top: 12px; color: #9db9ae; font-size: 17px; letter-spacing: .5px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; margin-top: 40px; }
+  .item {
+    padding: 22px;
+    border-radius: 18px;
+    background: rgba(16, 185, 129, .05);
+    border: 1px solid rgba(16, 185, 129, .12);
+    transition: transform .25s, background .25s, border-color .25s;
+  }
+  .item:hover { transform: translateY(-4px); background: rgba(16, 185, 129, .1); border-color: rgba(245, 158, 11, .5); }
+  .item h3 { font-size: 15px; color: #fbbf24; margin-bottom: 10px; letter-spacing: 1px; }
+  .item p { font-size: 14px; line-height: 1.8; color: #b9d3c9; }
+  .footer { margin-top: 44px; padding-top: 22px; border-top: 1px solid rgba(16,185,129,.12); color: #5f7a6f; font-size: 13px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  .dots span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .dots span:nth-child(1) { background: #34d399; }
+  .dots span:nth-child(2) { background: #fbbf24; }
+  .dots span:nth-child(3) { background: #2dd4bf; }
+
+  /* ---- 访客信息 ---- */
+  .visitor-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-top: 30px;
+    padding: 18px;
+    border-radius: 20px;
+    background: rgba(16, 185, 129, .06);
+    border: 1px solid rgba(52, 211, 153, .28);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .25);
+  }
+  .v-item { text-align: center; padding: 8px 6px; border-radius: 12px; background: rgba(0, 0, 0, .16); }
+  .v-label { font-size: 12px; color: #9db9ae; letter-spacing: 1px; margin-bottom: 6px; }
+  .v-value { font-size: 22px; font-weight: 700; color: #fbbf24; word-break: break-all; }
+  .v-value.v-small { font-size: 14px; font-weight: 600; color: #7ff0c9; line-height: 1.5; }
+
+  /* ---- 访问记录表 ---- */
+  .visit-log { margin-top: 26px; }
+  .visit-log-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+  .visit-log-head h3 { font-size: 15px; color: #fbbf24; letter-spacing: 1px; }
+  .visit-log-total { font-size: 12px; color: #6f8d81; }
+  .visit-log-wrap { max-height: 340px; overflow-y: auto; border-radius: 14px; border: 1px solid rgba(52,211,153,.2); background: rgba(0,0,0,.18); }
+  .visit-log-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .visit-log-table th { position: sticky; top: 0; background: #0c1a15; color: #9db9ae; font-weight: 600; text-align: left; padding: 10px 12px; border-bottom: 1px solid rgba(52,211,153,.25); }
+  .visit-log-table td { padding: 9px 12px; color: #b9d3c9; border-bottom: 1px solid rgba(52,211,153,.08); white-space: nowrap; }
+  .visit-log-table tr:hover td { background: rgba(16,185,129,.08); }
+  .visit-log-empty { color: #5f7a6f; text-align: center; }
+  .visit-log-table td.ip { color: #7ff0c9; font-family: Consolas, monospace; }
+
+  /* ---- 留言板 ---- */
+  .msg-board { margin-top: 26px; }
+  .msg-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .msg-form input, .msg-form textarea {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(52,211,153,.28);
+    background: rgba(0,0,0,.25);
+    color: #e8f5ef;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    resize: vertical;
+  }
+  .msg-form input:focus, .msg-form textarea:focus { border-color: #34d399; box-shadow: 0 0 0 3px rgba(16,185,129,.15); }
+  .msg-form button {
+    align-self: flex-end;
+    padding: 10px 26px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #10b981, #f59e0b);
+    color: #06231b;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .msg-form button:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(16,185,129,.35); }
+  .msg-form button:disabled { opacity: .5; cursor: default; transform: none; }
+  .msg-list { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  .msg-item { padding: 12px 14px; border-radius: 14px; background: rgba(16,185,129,.06); border: 1px solid rgba(52,211,153,.16); }
+  .msg-item .meta { display: flex; justify-content: space-between; font-size: 12px; color: #6f8d81; margin-bottom: 6px; }
+  .msg-item .meta b { color: #fbbf24; font-weight: 600; }
+  .msg-item .text { font-size: 14px; line-height: 1.7; color: #cfe6da; white-space: pre-wrap; word-break: break-word; }
+  .msg-empty { color: #5f7a6f; font-size: 13px; text-align: center; padding: 18px 0; }
+</style>
+</head>
+<body>
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+
+  <main class="card">
+    <div class="avatar">CM</div>
+    <h1>你好，我是 <span>chenmojino</span></h1>
+    <p class="tagline">陈伟旗 · 爱折腾 · 爱技术 · 爱生活 —— 欢迎来到我的小站</p>
+
+    <section class="visitor-bar" id="visitor-bar">
+      <div class="v-item">
+        <div class="v-label">👀 总访问</div>
+        <div class="v-value"><span id="v-count">…</span> 次</div>
+      </div>
+      <div class="v-item">
+        <div class="v-label">🌐 你的 IP</div>
+        <div class="v-value v-small" id="v-ip">…</div>
+      </div>
+      <div class="v-item">
+        <div class="v-label">📍 你的位置</div>
+        <div class="v-value v-small" id="v-loc">…</div>
+      </div>
+      <div class="v-item">
+        <div class="v-label">🕐 访问时间</div>
+        <div class="v-value v-small" id="v-time">…</div>
+      </div>
+    </section>
+
+    <section class="visit-log">
+      <div class="visit-log-head">
+        <h3>📋 最近访问记录</h3>
+        <span id="visit-log-total" class="visit-log-total"></span>
+      </div>
+      <div class="visit-log-wrap">
+        <table class="visit-log-table">
+          <thead>
+            <tr><th>时间</th><th>IP</th><th>地区</th><th>系统</th><th>浏览器</th><th>设备</th></tr>
+          </thead>
+          <tbody id="visit-log-body">
+            <tr><td colspan="6" class="visit-log-empty">加载中…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="msg-board">
+      <div class="visit-log-head">
+        <h3>💬 留言板</h3>
+        <span id="msg-count" class="visit-log-total"></span>
+      </div>
+      <div class="msg-form">
+        <input id="msg-name" type="text" maxlength="20" placeholder="你的名字（可不填）" />
+        <textarea id="msg-content" maxlength="500" rows="2" placeholder="说点什么吧…（最多 500 字）"></textarea>
+        <button id="msg-submit" type="button">发送留言</button>
+      </div>
+      <div class="msg-list" id="msg-list">
+        <div class="msg-empty">还没有留言，来抢沙发～</div>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="item">
+        <h3>关于我</h3>
+        <p>喜欢研究电脑、无人机和 AI，最近在折腾自建服务器、内网穿透和微信机器人。动手能力还行，好奇心很强。</p>
+      </section>
+      <section class="item">
+        <h3>兴趣</h3>
+        <p>无人机 &amp; 飞控 · 嵌入式开发 · AI 应用 · 二次元 · 偶尔写点小项目自娱自乐。</p>
+      </section>
+      <section class="item">
+        <h3>最近在忙</h3>
+        <p>用 Cloudflare Tunnel 把本机网站挂到公网，让大肥鱼（我的 AI 助手）帮忙打理各种杂活 🐟</p>
+      </section>
+      <section class="item">
+        <h3>联系我</h3>
+        <p>微信：陈伟旗<br>邮箱：2292007239@qq.com</p>
+      </section>
+      <section class="item">
+        <h3>下载</h3>
+        <p><a href="blade-runner-2049.pptx" download>📥 银翼杀手 2049 PPT（14页）</a><br>
+        <a href="alien-prequels.pptx?v=13" download>📥 异形前传 PPT · 英文版（20页）</a><br>
+        <a href="alien-prequels-cn.pptx?v=1" download>📥 异形前传 PPT · 中文深色版（20页）</a><br>
+        <a href="alien-prequels-light.pptx?v=1" download>📥 异形前传 PPT · 中文浅色版（20页）</a><br>
+        <a href="alien-short-cn.pptx?v=1" download>⏱ 异形 3分钟版 · 中文（7页）</a><br>
+        <a href="alien-short-en.pptx?v=1" download>⏱ 异形 3分钟版 · English（7页）</a><br>
+        <a href="alien-prequels-script-cn.docx?v=1" download>📝 异形前传 讲稿 Word · 中文</a><br>
+        <a href="alien-3min-script-en.docx?v=1" download>📝 异形 3分钟英文文案 Word</a><br>
+        <a href="alien-prequels-script-en.docx?v=2" download>📝 异形前传 讲稿 Word · English</a></p>
+      </section>
+    </div>
+
+    <footer class="footer">
+      <span class="dots"><span></span><span></span><span></span></span>
+      <span class="stats" id="stats">
+        👀 总访问 <b id="visit-count">…</b> 次
+        <span id="visit-detail" class="detail"></span>
+      </span>
+      <span>© 2026 chenmojino · 本站运行在自己的电脑上</span>
+      <span class="cf-badge">
+        <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="#F6821F" d="M18.6 13.9c.3-.9.2-1.8-.2-2.4-.4-.6-1.1-1-1.9-1l-8.6-.1c-.1 0-.2 0-.2-.1s0-.1.1-.2l8.7-.1c1-.1 2-.9 2.4-1.9l.4-1.2c0-.1 0-.1 0-.2C18.7 4.5 16.1 3 13.2 3 10.6 3 8.4 4.5 7.4 6.7c-.7-.5-1.6-.8-2.5-.7C3 6.1 1.5 7.7 1.5 9.6c0 .4.1.8.2 1.2C.7 11.1 0 12 0 13.1c0 1.5 1.2 2.7 2.7 2.7h14.8c1.2 0 2.3-.8 2.7-1.9h-1.6z"/><path fill="#FBAD41" d="M20.4 9.8h-.5c-.1 0-.2.1-.2.2l-.3 1.2c-.3.9-.2 1.8.2 2.4.4.6 1.1 1 1.9 1l2.4.1c.1 0 .2 0 .2.1s0 .1-.1.2l-2.4.1c-1 .1-2 .9-2.4 1.9l-.1.4c-.1.2 0 .3.2.3h4.2c1.3 0 2.5-.9 2.8-2.1.6-2.4-1.2-4.6-3.5-4.7-.4-.2-.9-.2-1.4-.2z"/></svg>
+        Cloudflare 代理加速
+      </span>
+    </footer>
+  </main>
+  <style>
+    .stats .detail { display: block; margin-top: 6px; color: #4e6b60; font-size: 12px; letter-spacing: .3px; }
+    .stats .detail b { color: #34d399; font-weight: 600; }
+    .cf-badge { display: inline-flex; align-items: center; gap: 6px; color: #9db9ae; font-size: 12px; }
+    .cf-badge svg { display: block; }
+  </style>
+  <script>
+    (function () {
+      var elC = document.getElementById('v-count');
+      var elIp = document.getElementById('v-ip');
+      var elLoc = document.getElementById('v-loc');
+      var elT = document.getElementById('v-time');
+      var footC = document.getElementById('visit-count');
+      var footD = document.getElementById('visit-detail');
+      function jget(url) {
+        return fetch(url, { cache: 'no-store' }).then(function (r) {
+          if (!r.ok) throw new Error('http ' + r.status);
+          return r.json();
+        });
+      }
+      // 优先走同域（Cloudflare 隧道路由），本地直接打开时回退到本机 8081
+      function jgetWithFallback(path) {
+        return jget(path).catch(function () { return jget('http://127.0.0.1:8081' + path); });
+      }
+      jgetWithFallback('/count')
+        .then(function (d) {
+          if (!d) return;
+          if (elC) elC.textContent = d.count || '—';
+          if (elIp) elIp.textContent = d.ip || '—';
+          var loc = [d.country, d.region, d.city].filter(Boolean).join(' · ') || '未知';
+          if (elLoc) elLoc.textContent = loc;
+          if (elT) elT.textContent = d.time || '—';
+          if (footC) footC.textContent = d.count || '—';
+          if (footD) footD.innerHTML = '你的 IP：<b>' + (d.ip || '—') + '</b> · 地区：<b>' + loc + '</b> · 时间：' + (d.time || '—');
+        })
+        .catch(function () {
+          if (elC) elC.textContent = '—';
+          if (elIp) elIp.textContent = '—';
+          if (elLoc) elLoc.textContent = '—';
+          if (elT) elT.textContent = '—';
+        });
+
+      // 访问记录列表
+      var logBody = document.getElementById('visit-log-body');
+      var logTotal = document.getElementById('visit-log-total');
+      function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+        });
+      }
+      function device(ua) {
+        ua = String(ua || '');
+        if (/Android/i.test(ua)) return '📱 Android';
+        if (/iPhone|iPad/i.test(ua)) return '📱 iOS';
+        if (/Windows/i.test(ua)) return '💻 Windows';
+        if (/Macintosh/i.test(ua)) return '💻 macOS';
+        if (/curl/i.test(ua)) return '🤖 命令行';
+        return '🌐 其他';
+      }
+      jgetWithFallback('/visits')
+        .then(function (d) {
+          if (!logBody) return;
+          var list = (d && d.visits) || [];
+          if (logTotal) logTotal.textContent = '共 ' + (d.total || 0) + ' 次访问';
+          if (!list.length) {
+            logBody.innerHTML = '<tr><td colspan="6" class="visit-log-empty">暂无记录</td></tr>';
+            return;
+          }
+          logBody.innerHTML = list.map(function (v) {
+            return '<tr><td>' + esc(v.time) + '</td><td class="ip">' + esc(v.ip) + '</td><td>' + esc(v.loc || '未知') +
+              '</td><td>' + esc(v.os || '—') + '</td><td>' + esc(v.browser || '—') + '</td><td>' + esc(v.device || '—') + '</td></tr>';
+          }).join('');
+        })
+        .catch(function () {
+          if (logBody) logBody.innerHTML = '<tr><td colspan="6" class="visit-log-empty">记录加载失败</td></tr>';
+        });
+
+      // 留言板
+      var msgList = document.getElementById('msg-list');
+      var msgCount = document.getElementById('msg-count');
+      var msgName = document.getElementById('msg-name');
+      var msgContent = document.getElementById('msg-content');
+      var msgBtn = document.getElementById('msg-submit');
+
+      function renderMessages(list) {
+        if (!msgList) return;
+        if (!list || !list.length) {
+          msgList.innerHTML = '<div class="msg-empty">还没有留言，来抢沙发～</div>';
+          if (msgCount) msgCount.textContent = '';
+          return;
+        }
+        if (msgCount) msgCount.textContent = '共 ' + list.length + ' 条留言';
+        msgList.innerHTML = list.map(function (m) {
+          return '<div class="msg-item"><div class="meta"><b>' + esc(m.name || '匿名') + '</b><span>' + esc(m.time) + '</span></div><div class="text">' + esc(m.content) + '</div></div>';
+        }).join('');
+      }
+
+      function loadMessages() {
+        return jgetWithFallback('/messages').then(function (d) {
+          renderMessages((d && d.messages) || []);
+        }).catch(function () {
+          renderMessages([]);
+        });
+      }
+
+      loadMessages();
+
+      if (msgBtn) {
+        msgBtn.addEventListener('click', function () {
+          var name = (msgName && msgName.value || '').trim();
+          var content = (msgContent && msgContent.value || '').trim();
+          if (!content) { msgContent && msgContent.focus(); return; }
+          msgBtn.disabled = true;
+          msgBtn.textContent = '发送中…';
+          var body = JSON.stringify({ name: name, content: content });
+          function post(url) {
+            return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body });
+          }
+          post('/messages').catch(function () { return post('http://127.0.0.1:8081/messages'); })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+              if (d && d.ok) {
+                msgContent.value = '';
+                loadMessages();
+              } else {
+                alert('发送失败：' + (d && d.error || '未知错误'));
+              }
+            })
+            .catch(function () { alert('发送失败，请稍后再试'); })
+            .then(function () {
+              msgBtn.disabled = false;
+              msgBtn.textContent = '发送留言';
+            });
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
