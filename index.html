@@ -254,6 +254,25 @@
   #post-list .post-foot .act { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: color .18s; white-space: nowrap; }
   #post-list .post-foot .act:hover { color: #34d399; }
   #post-list .post-foot .act.liked { color: #f87171; }
+
+  /* ---- 评论 / 转发 ---- */
+  #post-list .cmt-box { margin-top: 10px; border-top: 1px dashed rgba(52,211,153,.18); padding-top: 10px; display: none; }
+  #post-list .cmt-box.on { display: block; }
+  #post-list .cmt-item { font-size: 13px; color: #b9d3c9; padding: 6px 0; line-height: 1.6; }
+  #post-list .cmt-item b { color: #fbbf24; font-weight: 600; margin-right: 6px; }
+  #post-list .cmt-item .t { color: #5f7a6f; font-size: 11.5px; margin-left: 8px; }
+  #post-list .cmt-form { display: flex; gap: 8px; margin-top: 8px; }
+  #post-list .cmt-form input {
+    padding: 8px 10px; border-radius: 10px; font-size: 12.5px;
+    border: 1px solid rgba(52,211,153,.24); background: rgba(0,0,0,.25); color: #e8f5ef; outline: none;
+  }
+  #post-list .cmt-form .cmt-name { flex: 0 0 110px; }
+  #post-list .cmt-form .cmt-text { flex: 1; }
+  #post-list .cmt-form button {
+    padding: 8px 16px; border: none; border-radius: 10px; cursor: pointer;
+    background: linear-gradient(135deg, #10b981, #f59e0b); color: #06231b; font-weight: 700; font-size: 12.5px;
+  }
+  #post-list .post-foot .act.reposted { color: #34d399; }
 </style>
 </head>
 <body>
@@ -305,7 +324,7 @@
 
     <section class="feed">
       <div class="visit-log-head">
-        <h3>📸 最新动态</h3>
+        <h3>💬 大谈阔论区</h3>
         <span class="visit-log-total" id="post-count"></span>
       </div>
 
@@ -549,6 +568,25 @@
   #post-list .post-foot .act { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: color .18s; white-space: nowrap; }
   #post-list .post-foot .act:hover { color: #34d399; }
   #post-list .post-foot .act.liked { color: #f87171; }
+
+  /* ---- 评论 / 转发 ---- */
+  #post-list .cmt-box { margin-top: 10px; border-top: 1px dashed rgba(52,211,153,.18); padding-top: 10px; display: none; }
+  #post-list .cmt-box.on { display: block; }
+  #post-list .cmt-item { font-size: 13px; color: #b9d3c9; padding: 6px 0; line-height: 1.6; }
+  #post-list .cmt-item b { color: #fbbf24; font-weight: 600; margin-right: 6px; }
+  #post-list .cmt-item .t { color: #5f7a6f; font-size: 11.5px; margin-left: 8px; }
+  #post-list .cmt-form { display: flex; gap: 8px; margin-top: 8px; }
+  #post-list .cmt-form input {
+    padding: 8px 10px; border-radius: 10px; font-size: 12.5px;
+    border: 1px solid rgba(52,211,153,.24); background: rgba(0,0,0,.25); color: #e8f5ef; outline: none;
+  }
+  #post-list .cmt-form .cmt-name { flex: 0 0 110px; }
+  #post-list .cmt-form .cmt-text { flex: 1; }
+  #post-list .cmt-form button {
+    padding: 8px 16px; border: none; border-radius: 10px; cursor: pointer;
+    background: linear-gradient(135deg, #10b981, #f59e0b); color: #06231b; font-weight: 700; font-size: 12.5px;
+  }
+  #post-list .post-foot .act.reposted { color: #34d399; }
 </style>
   <script>
     (function () {
@@ -860,21 +898,34 @@
             if (p.kind === 'video') media = '<video controls preload="metadata" playsinline src="' + esc(p.media) + '"></video>';
             else media = '<img class="post-img" loading="lazy" src="' + esc(p.media) + '" alt="">';
           }
-          var name = esc(p.name || '匿名');
+          var cmts = (p.comments || []).map(function (c) {
+            return '<div class="cmt-item"><b>' + esc(c.name || '匿名') + '</b>' + esc(c.text) +
+              '<span class="t">' + esc(c.time) + '</span></div>';
+          }).join('') || '<div class="cmt-item" style="color:#5f7a6f">还没有评论，来抢沙发～</div>';
           return '<article class="post">' +
             '<div class="avatar-sm">' + esc((p.name || '匿名').slice(0, 2)) + '</div>' +
-            '<div class="who"><b>' + name + '</b><span class="handle">' + esc(handleOf(p.name)) + '</span>' +
+            '<div class="who"><b>' + esc(p.name || '匿名') + '</b>' +
+            '<span class="handle">' + esc(handleOf(p.name)) + '</span>' +
             '<span class="dot">·</span><span class="handle">' + esc(p.time) + '</span></div>' +
             (p.text ? '<p class="post-text">' + esc(p.text) + '</p>' : '') + media +
             '<footer class="post-foot">' +
-            '<span class="act" title="回复（暂未开放）">💬 回复</span>' +
-            '<span class="act" title="转发（暂未开放）">🔁 转发</span>' +
-            '<button class="like-btn act" type="button" data-post="post' + p.id + '">❤️ <b>0</b></button>' +
-            '</footer></article>';
+            '<button class="act cmt-btn" type="button" data-id="' + p.id + '">💬 <b>' + (p.comments || []).length + '</b></button>' +
+            '<button class="act rp-btn" type="button" data-id="' + p.id + '">🔁 <b>' + (p.reposts || 0) + '</b></button>' +
+            '<button class="like-btn act" type="button" data-post="post' + p.id + '">❤️ <b>' + (p.likes || 0) + '</b></button>' +
+            '</footer>' +
+            '<div class="cmt-box" id="cmt-box-' + p.id + '">' +
+            '<div class="cmt-list">' + cmts + '</div>' +
+            '<div class="cmt-form"><input class="cmt-name" maxlength="20" placeholder="名字（可不填）">' +
+            '<input class="cmt-text" maxlength="500" placeholder="写点评论…">' +
+            '<button type="button" class="cmt-send" data-id="' + p.id + '">发送</button></div>' +
+            '</div>' +
+            '</article>';
         }).join('');
-        bindLikes();
-        attachVideoRetry();
+        if (typeof bindLikes === 'function') bindLikes();
+        if (typeof bindPostActions === 'function') bindPostActions();
+        if (typeof attachVideoRetry === 'function') attachVideoRetry();
       }
+      window.renderPosts = render;
       function load() {
         jget('/posts').then(function (d) { render(d && d.posts); }).catch(function () {
           listEl.innerHTML = '<div class="msg-empty">加载失败，点击刷新</div>';
@@ -995,6 +1046,63 @@
       if (btn) btn.addEventListener('click', function () {
         setTimeout(function () { if (!fileEl.value) clear(); }, 3000);
       });
+    })();
+  </script>
+
+
+  <script>
+    (function () {
+      function root() { return location.hostname === '127.0.0.1' ? 'http://127.0.0.1:8081' : ''; }
+      function jpost(path, body) {
+        return fetch(root() + path, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+        }).then(function (r) { return r.json(); });
+      }
+      window.bindPostActions = function () {
+        document.querySelectorAll('#post-list .cmt-btn').forEach(function (b) {
+          if (b.dataset.b) return;
+          b.dataset.b = '1';
+          b.addEventListener('click', function () {
+            var box = document.getElementById('cmt-box-' + b.getAttribute('data-id'));
+            if (box) box.classList.toggle('on');
+          });
+        });
+        document.querySelectorAll('#post-list .rp-btn').forEach(function (b) {
+          if (b.dataset.b) return;
+          b.dataset.b = '1';
+          b.addEventListener('click', function () {
+            var id = parseInt(b.getAttribute('data-id'), 10);
+            jpost('/repost', { post_id: id }).then(function (d) {
+              if (!d || !d.ok) return;
+              var n = b.querySelector('b'); if (n) n.textContent = d.count;
+              b.classList.toggle('reposted', !!d.reposted);
+            }).catch(function () {});
+          });
+        });
+        document.querySelectorAll('#post-list .cmt-send').forEach(function (b) {
+          if (b.dataset.b) return;
+          b.dataset.b = '1';
+          b.addEventListener('click', function () {
+            var id = parseInt(b.getAttribute('data-id'), 10);
+            var box = document.getElementById('cmt-box-' + id);
+            if (!box) return;
+            var name = (box.querySelector('.cmt-name').value || '').trim();
+            var text = (box.querySelector('.cmt-text').value || '').trim();
+            if (!text) { box.querySelector('.cmt-text').focus(); return; }
+            b.disabled = true;
+            jpost('/comment', { post_id: id, name: name, text: text }).then(function (d) {
+              b.disabled = false;
+              if (d && d.ok && window.renderPosts) {
+                window.renderPosts(d.posts);
+                setTimeout(function () {
+                  var b2 = document.getElementById('cmt-box-' + id);
+                  if (b2) b2.classList.add('on');
+                }, 60);
+              }
+            }).catch(function () { b.disabled = false; });
+          });
+        });
+      };
     })();
   </script>
 
