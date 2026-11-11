@@ -387,7 +387,7 @@
     <section class="upload-box">
       <div class="visit-log-head">
         <h3>📤 上传视频</h3>
-        <span class="visit-log-total">mp4 / webm / mov · 最大 1GB（自动分片）</span>
+        <span class="visit-log-total">mp4 / webm / mov · 最大 1GB（2MB 分片上传）</span>
       </div>
       <div class="upload-row">
         <input id="up-file" type="file" accept="video/mp4,video/webm,video/quicktime,video/x-m4v" />
@@ -544,7 +544,7 @@
       var count = document.getElementById('up-count');
       if (!fileInput || !btn) return;
 
-      var CHUNK = 8 * 1024 * 1024;
+      var CHUNK = 2 * 1024 * 1024;
       function base() {
         return location.hostname === '127.0.0.1' ? 'http://127.0.0.1:8081' : '';
       }
@@ -619,7 +619,7 @@
               msg.textContent = '上传中… ' + pct + '%  (' + (index + 1) + '/' + total + ')';
             }
           }).then(function (d) {
-            if (!d || !d.ok) throw new Error((d && d.error) || 'failed');
+            if (!d || !d.ok) throw new Error((d && d.error) || d || 'failed');
             index += 1;
             if (d.done) {
               if (bar) bar.style.width = '100%';
