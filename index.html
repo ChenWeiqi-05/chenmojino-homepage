@@ -219,6 +219,8 @@
   .up-item .up-meta { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; font-size: 12px; color: #6f8d81; gap: 10px; }
   .up-item .up-meta a { color: #34d399; text-decoration: none; }
 
+  .up-hint { font-size: 12px; color: #5f7a6f; margin: 10px 0 0; line-height: 1.7; }
+  .up-hint code { background: rgba(255,255,255,.06); padding: 1px 6px; border-radius: 6px; word-break: break-all; }
 </style>
 </head>
 <body>
@@ -395,6 +397,7 @@
       </div>
       <div class="up-progress"><div id="up-bar"></div></div>
       <div id="up-msg" class="up-msg"></div>
+      <p class="up-hint">💡 大文件建议在本机用 <b>http://127.0.0.1</b> 打开本页上传（走局域网，实测比公网快 50 倍）；或直接把文件拷进 <code>C:\inetpub\wwwroot\video\uploads</code></p>
 
       <div class="visit-log-head" style="margin-top:22px;">
         <h3>🎞 已上传的视频</h3>
@@ -533,6 +536,8 @@
   .up-item .up-meta { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; font-size: 12px; color: #6f8d81; gap: 10px; }
   .up-item .up-meta a { color: #34d399; text-decoration: none; }
 
+  .up-hint { font-size: 12px; color: #5f7a6f; margin: 10px 0 0; line-height: 1.7; }
+  .up-hint code { background: rgba(255,255,255,.06); padding: 1px 6px; border-radius: 6px; word-break: break-all; }
 </style>
   <script>
     (function () {
@@ -637,6 +642,145 @@
         }
         step();
       });
+    })();
+  </script>
+
+  <script>
+    (function () {
+      function base() {
+        return location.hostname === '127.0.0.1' ? 'http://127.0.0.1:8081' : '';
+      }
+      function jget(path) {
+        return fetch(base() + path, { cache: 'no-store' }).then(function (r) {
+          if (!r.ok) throw new Error('bad ' + r.status);
+          return r.json();
+        }).catch(function () {
+          return fetch('http://127.0.0.1:8081' + path, { cache: 'no-store' }).then(function (r) {
+            if (!r.ok) throw new Error('bad');
+            return r.json();
+          });
+        });
+      }
+      function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+        });
+      }
+
+      /* ---- 访客信息 ---- */
+      var elC = document.getElementById('v-count');
+      var elIp = document.getElementById('v-ip');
+      var elLoc = document.getElementById('v-loc');
+      var elT = document.getElementById('v-time');
+      var footC = document.getElementById('visit-count');
+      var footD = document.getElementById('visit-detail');
+      jget('/count').then(function (d) {
+        if (!d) return;
+        if (elC) elC.textContent = d.count || '—';
+        if (elIp) elIp.textContent = d.ip || '—';
+        var loc = [d.country, d.region, d.city].filter(Boolean).join(' · ') || '未解析';
+        if (elLoc) elLoc.textContent = loc;
+        if (elT) elT.textContent = d.time || '—';
+        if (footC) footC.textContent = d.count || '—';
+        if (footD) footD.innerHTML = '你的 IP：<b>' + (d.ip || '—') + '</b> · 地区：<b>' + loc + '</b> · 时间：' + (d.time || '—');
+      }).catch(function () {
+        if (elLoc) elLoc.textContent = '—';
+      });
+
+      /* ---- 访问记录表 ---- */
+      var logBody = document.getElementById('visit-log-body');
+      var logTotal = document.getElementById('visit-log-total');
+      jget('/visits').then(function (d) {
+        if (!logBody) return;
+        var list = (d && d.visits) || [];
+        if (logTotal) logTotal.textContent = '共 ' + (d.total || 0) + ' 次访问';
+        if (!list.length) {
+          logBody.innerHTML = '<tr><td colspan="6" class="visit-log-empty">暂无记录</td></tr>';
+          return;
+        }
+        logBody.innerHTML = list.map(function (v) {
+          return '<tr><td>' + esc(v.time) + '</td><td class="ip">' + esc(v.ip) + '</td>' +
+            '<td>' + esc(v.loc || '未知') + '</td><td>' + esc(v.os || '—') + '</td>' +
+            '<td>' + esc(v.browser || '—') + '</td><td>' + esc(v.device || '—') + '</td></tr>';
+        }).join('');
+      }).catch(function () {
+        if (logBody) logBody.innerHTML = '<tr><td colspan="6" class="visit-log-empty">记录加载失败</td></tr>';
+      });
+
+      /* ---- 点赞 ---- */
+      function paintLikes(counts) {
+        document.querySelectorAll('.like-btn').forEach(function (btn) {
+          var k = btn.getAttribute('data-post');
+          var n = (counts && counts[k]) || 0;
+          var b = btn.querySelector('b');
+          if (b) b.textContent = n;
+        });
+      }
+      jget('/likes').then(function (d) { paintLikes(d && d.likes); }).catch(function () {});
+      document.querySelectorAll('.like-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var k = btn.getAttribute('data-post');
+          var body = JSON.stringify({ post: k });
+          function post(url) {
+            return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body })
+              .then(function (r) { if (!r.ok) throw new Error('bad'); return r.json(); });
+          }
+          post(base() + '/like').catch(function () { return post('http://127.0.0.1:8081/like'); })
+            .then(function (d) {
+              if (d && d.ok) {
+                var b = btn.querySelector('b');
+                if (b) b.textContent = d.count;
+                btn.classList.toggle('liked', !!d.liked);
+              }
+            }).catch(function () {});
+        });
+      });
+
+      /* ---- 留言板 ---- */
+      var msgList = document.getElementById('msg-list');
+      var msgCount = document.getElementById('msg-count');
+      var msgName = document.getElementById('msg-name');
+      var msgContent = document.getElementById('msg-content');
+      var msgBtn = document.getElementById('msg-submit');
+      function renderMessages(list) {
+        if (!msgList) return;
+        if (!list || !list.length) {
+          msgList.innerHTML = '<div class="msg-empty">还没有留言，来抢沙发～</div>';
+          if (msgCount) msgCount.textContent = '';
+          return;
+        }
+        if (msgCount) msgCount.textContent = '共 ' + list.length + ' 条留言';
+        msgList.innerHTML = list.map(function (m) {
+          return '<div class="msg-item"><div class="meta"><b>' + esc(m.name || '匿名') + '</b><span>' + esc(m.time) +
+            '</span></div><div class="text">' + esc(m.content) + '</div></div>';
+        }).join('');
+      }
+      function loadMessages() {
+        return jget('/messages').then(function (d) { renderMessages((d && d.messages) || []); })
+          .catch(function () { renderMessages([]); });
+      }
+      loadMessages();
+      if (msgBtn) {
+        msgBtn.addEventListener('click', function () {
+          var name = (msgName && msgName.value || '').trim();
+          var content = (msgContent && msgContent.value || '').trim();
+          if (!content) { if (msgContent) msgContent.focus(); return; }
+          msgBtn.disabled = true;
+          msgBtn.textContent = '发送中…';
+          var body = JSON.stringify({ name: name, content: content });
+          function post(url) {
+            return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body })
+              .then(function (r) { if (!r.ok) throw new Error('bad'); return r.json(); });
+          }
+          post(base() + '/messages').catch(function () { return post('http://127.0.0.1:8081/messages'); })
+            .then(function (d) {
+              if (d && d.ok) { msgContent.value = ''; loadMessages(); }
+              else { alert('发送失败：' + ((d && d.error) || '未知错误')); }
+            })
+            .catch(function () { alert('发送失败，请稍后再试'); })
+            .then(function () { msgBtn.disabled = false; msgBtn.textContent = '发送留言'; });
+        });
+      }
     })();
   </script>
 
