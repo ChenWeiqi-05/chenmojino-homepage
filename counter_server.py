@@ -7,6 +7,7 @@ import json
 import os
 import sqlite3
 import time
+import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -14,6 +15,10 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(BASE, "visitors.db")
 OLD_COUNT = os.path.join(BASE, "visitor_count.json")
 OLD_LOG = os.path.join(BASE, "visitor_log.jsonl")
+
+UPLOAD_DIR = r"C:\inetpub\wwwroot\video\uploads"
+MAX_UPLOAD = 90 * 1024 * 1024  # 90MB（Cloudflare 免费版单请求上限 100MB）
+ALLOWED_EXT = {".mp4", ".webm", ".mov", ".m4v"}
 
 GEO_CACHE = {}
 
@@ -45,6 +50,12 @@ def db():
     conn.execute("""CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         time TEXT, name TEXT, content TEXT, ip TEXT
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS likes (
+        post TEXT NOT NULL,
+        ip TEXT NOT NULL,
+        time TEXT,
+        PRIMARY KEY (post, ip)
     )""")
     conn.execute("INSERT OR IGNORE INTO counter (id, count) VALUES (1, 0)")
     # 老库补列
@@ -164,6 +175,65 @@ def all_messages():
         conn.close()
 
 
+def like_post(post, ip):
+    """点赞（同一 IP 对同一帖子只算一次）"""
+    conn = db()
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO likes (post, ip, time) VALUES (?,?,?)",
+            (post, ip, time.strftime("%Y-%m-%d %H:%M:%S")),
+        )
+        conn.commit()
+        n = conn.execute("SELECT COUNT(*) FROM likes WHERE post = ?", (post,)).fetchone()[0]
+        mine = conn.execute("SELECT COUNT(*) FROM likes WHERE post = ? AND ip = ?", (post, ip)).fetchone()[0]
+        return n, mine > 0
+    finally:
+        conn.close()
+
+
+def like_counts():
+    conn = db()
+    try:
+        rows = conn.execute("SELECT post, COUNT(*) FROM likes GROUP BY post").fetchall()
+        return {r[0]: r[1] for r in rows}
+    finally:
+        conn.close()
+
+
+def safe_name(name):
+    """只保留文件名里的安全字符"""
+    name = os.path.basename(str(name or "")).strip()
+    keep = []
+    for ch in name:
+        if ch.isalnum() or ch in "._-":
+            keep.append(ch)
+        elif ch in " ()":
+            keep.append("_")
+    name = "".join(keep)
+    if not name:
+        name = "video"
+    return name[:80]
+
+
+def list_uploads():
+    out = []
+    if not os.path.isdir(UPLOAD_DIR):
+        return out
+    for fn in os.listdir(UPLOAD_DIR):
+        p = os.path.join(UPLOAD_DIR, fn)
+        if not os.path.isfile(p):
+            continue
+        st = os.stat(p)
+        out.append({
+            "name": fn,
+            "size": st.st_size,
+            "time": time.strftime("%Y-%m-%d %H:%M", time.localtime(st.st_mtime)),
+            "url": "/video/uploads/" + fn,
+        })
+    out.sort(key=lambda x: x["time"], reverse=True)
+    return out
+
+
 def client_ip(handler):
     h = handler.headers
     for key in ("CF-Connecting-IP", "X-Forwarded-For", "X-Real-IP"):
@@ -275,6 +345,12 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/peek":
             self._headers()
             self.wfile.write(json.dumps({"count": get_count()}).encode("utf-8"))
+        elif path in ("/likes", "/likes/"):
+            self._headers()
+            self.wfile.write(json.dumps({"likes": like_counts()}, ensure_ascii=False).encode("utf-8"))
+        elif path in ("/videos", "/videos/"):
+            self._headers()
+            self.wfile.write(json.dumps({"videos": list_uploads()}, ensure_ascii=False).encode("utf-8"))
         elif path in ("/visits", "/visits/"):
             rows = all_visits()
             visits = []
@@ -321,6 +397,59 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._headers(500)
                 self.wfile.write(json.dumps({"ok": False, "error": str(e)[:100]}).encode("utf-8"))
+        elif path in ("/like", "/like/"):
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+                raw = self.rfile.read(min(length, 5000)) if length > 0 else b"{}"
+                data = json.loads(raw.decode("utf-8", "replace") or "{}")
+                post = str(data.get("post") or "").strip()[:20]
+                if not post:
+                    self._headers(400)
+                    self.wfile.write(b'{"ok":false,"error":"post required"}')
+                    return
+                ip = client_ip(self)
+                n, mine = like_post(post, ip)
+                self._headers()
+                self.wfile.write(json.dumps({"ok": True, "count": n, "liked": mine}, ensure_ascii=False).encode("utf-8"))
+            except Exception as e:
+                self._headers(500)
+                self.wfile.write(json.dumps({"ok": False, "error": str(e)[:100]}).encode("utf-8"))
+        elif path in ("/upload", "/upload/"):
+            try:
+                qs = self.path.split("?", 1)[1] if "?" in self.path else ""
+                params = {}
+                for kv in qs.split("&"):
+                    if "=" in kv:
+                        k, v = kv.split("=", 1)
+                        params[k] = urllib.parse.unquote(v)
+                name = safe_name(params.get("name") or "video.mp4")
+                ext = os.path.splitext(name)[1].lower()
+                if ext not in ALLOWED_EXT:
+                    self._headers(400)
+                    self.wfile.write(b'{"ok":false,"error":"unsupported type"}')
+                    return
+                length = int(self.headers.get("Content-Length") or 0)
+                if length <= 0 or length > MAX_UPLOAD:
+                    self._headers(413)
+                    self.wfile.write(json.dumps({"ok": False, "error": "file too large (max 90MB)"}).encode())
+                    return
+                os.makedirs(UPLOAD_DIR, exist_ok=True)
+                stamp = time.strftime("%Y%m%d-%H%M%S")
+                fn = "%s-%s%s" % (stamp, os.path.splitext(name)[0][:50], ext)
+                dst = os.path.join(UPLOAD_DIR, fn)
+                remain = length
+                with open(dst, "wb") as f:
+                    while remain > 0:
+                        chunk = self.rfile.read(min(1 << 20, remain))
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        remain -= len(chunk)
+                self._headers()
+                self.wfile.write(json.dumps({"ok": True, "url": "/video/uploads/" + fn, "size": length}, ensure_ascii=False).encode("utf-8"))
+            except Exception as e:
+                self._headers(500)
+                self.wfile.write(json.dumps({"ok": False, "error": str(e)[:120]}).encode("utf-8"))
         else:
             self._headers(404)
             self.wfile.write(b'{"error":"not found"}')
