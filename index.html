@@ -578,9 +578,9 @@
         }
         if (count) count.textContent = '共 ' + videos.length + ' 个';
         list.innerHTML = videos.map(function (v) {
-          return '<div class="up-item"><video controls preload="metadata" src="' + base() + v.url + '"></video>' +
+          return '<div class="up-item"><video controls preload="metadata" src="' + v.url + '"></video>' +
             '<div class="up-meta"><span>' + v.time + ' · ' + human(v.size) + '</span>' +
-            '<a href="' + base() + v.url + '" download>下载</a></div></div>';
+            '<a href="' + v.url + '" download>下载</a></div></div>';
         }).join('');
       }
       function refresh() { api('/videos').then(function (d) { render(d && d.videos); }).catch(function () {}); }
