@@ -1,0 +1,10 @@
+# IIS / 系统文件
+iisstart.htm
+iisstart.png
+count.txt
+*.log
+logs/
+
+# 临时
+*.tmp
+*.bak
