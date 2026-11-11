@@ -248,6 +248,18 @@
   }
   .post-composer button:disabled { opacity: .5; cursor: default; }
   .post .post-img, .post video { width: 100%; border-radius: 14px; display: block; border: 1px solid rgba(255,255,255,.06); max-height: 420px; object-fit: contain; background: #000; }
+
+  .pc-preview { margin-top: 10px; display: none; }
+  .pc-preview.on { display: block; }
+  .pc-preview .wrap { position: relative; display: inline-block; max-width: 100%; }
+  .pc-preview img, .pc-preview video { max-width: 100%; max-height: 300px; border-radius: 14px; display: block; border: 1px solid rgba(255,255,255,.08); background: #000; }
+  .pc-preview .rm {
+    position: absolute; top: 8px; right: 8px;
+    width: 28px; height: 28px; border-radius: 50%;
+    border: none; cursor: pointer;
+    background: rgba(0,0,0,.65); color: #fff; font-size: 15px; line-height: 1;
+  }
+  .pc-preview .fname { font-size: 11.5px; color: #6f8d81; margin-top: 6px; }
 </style>
 </head>
 <body>
@@ -323,6 +335,7 @@
           <input id="post-file" type="file" accept="image/*,video/*" />
         </div>
         <textarea id="post-text" maxlength="1000" rows="3" placeholder="说点什么…（可只发图 / 只发文字 / 图文都行）"></textarea>
+        <div id="post-preview" class="pc-preview"></div>
         <div class="pc-actions">
           <span id="post-msg" class="pc-msg"></span>
           <button id="post-btn" type="button">发布动态</button>
@@ -535,6 +548,18 @@
   }
   .post-composer button:disabled { opacity: .5; cursor: default; }
   .post .post-img, .post video { width: 100%; border-radius: 14px; display: block; border: 1px solid rgba(255,255,255,.06); max-height: 420px; object-fit: contain; background: #000; }
+
+  .pc-preview { margin-top: 10px; display: none; }
+  .pc-preview.on { display: block; }
+  .pc-preview .wrap { position: relative; display: inline-block; max-width: 100%; }
+  .pc-preview img, .pc-preview video { max-width: 100%; max-height: 300px; border-radius: 14px; display: block; border: 1px solid rgba(255,255,255,.08); background: #000; }
+  .pc-preview .rm {
+    position: absolute; top: 8px; right: 8px;
+    width: 28px; height: 28px; border-radius: 50%;
+    border: none; cursor: pointer;
+    background: rgba(0,0,0,.65); color: #fff; font-size: 15px; line-height: 1;
+  }
+  .pc-preview .fname { font-size: 11.5px; color: #6f8d81; margin-top: 6px; }
 </style>
   <script>
     (function () {
@@ -971,6 +996,49 @@
           btn.disabled = false;
           msg.textContent = '发布失败：' + (e && e.message || e);
         });
+      });
+    })();
+  </script>
+
+
+  <script>
+    (function () {
+      var fileEl = document.getElementById('post-file');
+      var prev = document.getElementById('post-preview');
+      if (!fileEl || !prev) return;
+      var currentUrl = null;
+
+      function clear() {
+        if (currentUrl) { URL.revokeObjectURL(currentUrl); currentUrl = null; }
+        prev.className = 'pc-preview';
+        prev.innerHTML = '';
+      }
+
+      fileEl.addEventListener('change', function () {
+        clear();
+        var f = fileEl.files && fileEl.files[0];
+        if (!f) return;
+        currentUrl = URL.createObjectURL(f);
+        var media = '';
+        if (f.type.indexOf('video') === 0) {
+          media = '<video src="' + currentUrl + '" controls muted playsinline></video>';
+        } else {
+          media = '<img src="' + currentUrl + '" alt="预览">';
+        }
+        prev.innerHTML = '<div class="wrap">' + media +
+          '<button class="rm" type="button" title="移除">×</button></div>' +
+          '<div class="fname">' + f.name + ' · ' + (f.size > 1048576 ? (f.size / 1048576).toFixed(1) + ' MB' : Math.round(f.size / 1024) + ' KB') + '</div>';
+        prev.className = 'pc-preview on';
+        prev.querySelector('.rm').addEventListener('click', function () {
+          fileEl.value = '';
+          clear();
+        });
+      });
+
+      // 发布成功后清空预览
+      var btn = document.getElementById('post-btn');
+      if (btn) btn.addEventListener('click', function () {
+        setTimeout(function () { if (!fileEl.value) clear(); }, 3000);
       });
     })();
   </script>
