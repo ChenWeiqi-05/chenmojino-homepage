@@ -11,3 +11,5 @@ logs/
 # 用户上传的视频（不入库）
 video/uploads/
 video/.tmp/
+
+img/uploads/
