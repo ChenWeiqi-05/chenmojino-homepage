@@ -387,7 +387,7 @@
     <section class="upload-box">
       <div class="visit-log-head">
         <h3>📤 上传视频</h3>
-        <span class="visit-log-total">mp4 / webm / mov · 最大 90MB</span>
+        <span class="visit-log-total">mp4 / webm / mov · 最大 1GB（自动分片）</span>
       </div>
       <div class="upload-row">
         <input id="up-file" type="file" accept="video/mp4,video/webm,video/quicktime,video/x-m4v" />
@@ -536,179 +536,6 @@
 </style>
   <script>
     (function () {
-      var elC = document.getElementById('v-count');
-      var elIp = document.getElementById('v-ip');
-      var elLoc = document.getElementById('v-loc');
-      var elT = document.getElementById('v-time');
-      var footC = document.getElementById('visit-count');
-      var footD = document.getElementById('visit-detail');
-      function jget(url) {
-        return fetch(url, { cache: 'no-store' }).then(function (r) {
-          if (!r.ok) throw new Error('http ' + r.status);
-          return r.json();
-        });
-      }
-      // 优先走同域（Cloudflare 隧道路由），本地直接打开时回退到本机 8081
-      function jgetWithFallback(path) {
-        return jget(path).catch(function () { return jget('http://127.0.0.1:8081' + path); });
-      }
-      jgetWithFallback('/count')
-        .then(function (d) {
-          if (!d) return;
-          if (elC) elC.textContent = d.count || '—';
-          if (elIp) elIp.textContent = d.ip || '—';
-          var loc = [d.country, d.region, d.city].filter(Boolean).join(' · ') || '未知';
-          if (elLoc) elLoc.textContent = loc;
-          if (elT) elT.textContent = d.time || '—';
-          if (footC) footC.textContent = d.count || '—';
-          if (footD) footD.innerHTML = '你的 IP：<b>' + (d.ip || '—') + '</b> · 地区：<b>' + loc + '</b> · 时间：' + (d.time || '—');
-        })
-        .catch(function () {
-          if (elC) elC.textContent = '—';
-          if (elIp) elIp.textContent = '—';
-          if (elLoc) elLoc.textContent = '—';
-          if (elT) elT.textContent = '—';
-        });
-
-      // 访问记录列表
-      var logBody = document.getElementById('visit-log-body');
-      var logTotal = document.getElementById('visit-log-total');
-      function esc(s) {
-        return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
-        });
-      }
-      function device(ua) {
-        ua = String(ua || '');
-        if (/Android/i.test(ua)) return '📱 Android';
-        if (/iPhone|iPad/i.test(ua)) return '📱 iOS';
-        if (/Windows/i.test(ua)) return '💻 Windows';
-        if (/Macintosh/i.test(ua)) return '💻 macOS';
-        if (/curl/i.test(ua)) return '🤖 命令行';
-        return '🌐 其他';
-      }
-      jgetWithFallback('/visits')
-        .then(function (d) {
-          if (!logBody) return;
-          var list = (d && d.visits) || [];
-          if (logTotal) logTotal.textContent = '共 ' + (d.total || 0) + ' 次访问';
-          if (!list.length) {
-            logBody.innerHTML = '<tr><td colspan="6" class="visit-log-empty">暂无记录</td></tr>';
-            return;
-          }
-          logBody.innerHTML = list.map(function (v) {
-            return '<tr><td>' + esc(v.time) + '</td><td class="ip">' + esc(v.ip) + '</td><td>' + esc(v.loc || '未知') +
-              '</td><td>' + esc(v.os || '—') + '</td><td>' + esc(v.browser || '—') + '</td><td>' + esc(v.device || '—') + '</td></tr>';
-          }).join('');
-        })
-        .catch(function () {
-          if (logBody) logBody.innerHTML = '<tr><td colspan="6" class="visit-log-empty">记录加载失败</td></tr>';
-        });
-
-      // 留言板
-      var msgList = document.getElementById('msg-list');
-      var msgCount = document.getElementById('msg-count');
-      var msgName = document.getElementById('msg-name');
-      var msgContent = document.getElementById('msg-content');
-      var msgBtn = document.getElementById('msg-submit');
-
-      function renderMessages(list) {
-        if (!msgList) return;
-        if (!list || !list.length) {
-          msgList.innerHTML = '<div class="msg-empty">还没有留言，来抢沙发～</div>';
-          if (msgCount) msgCount.textContent = '';
-          return;
-        }
-        if (msgCount) msgCount.textContent = '共 ' + list.length + ' 条留言';
-        msgList.innerHTML = list.map(function (m) {
-          return '<div class="msg-item"><div class="meta"><b>' + esc(m.name || '匿名') + '</b><span>' + esc(m.time) + '</span></div><div class="text">' + esc(m.content) + '</div></div>';
-        }).join('');
-      }
-
-      function loadMessages() {
-        return jgetWithFallback('/messages').then(function (d) {
-          renderMessages((d && d.messages) || []);
-        }).catch(function () {
-          renderMessages([]);
-        });
-      }
-
-      loadMessages();
-
-      if (msgBtn) {
-        msgBtn.addEventListener('click', function () {
-          var name = (msgName && msgName.value || '').trim();
-          var content = (msgContent && msgContent.value || '').trim();
-          if (!content) { msgContent && msgContent.focus(); return; }
-          msgBtn.disabled = true;
-          msgBtn.textContent = '发送中…';
-          var body = JSON.stringify({ name: name, content: content });
-          function post(url) {
-            return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body });
-          }
-          post('/messages').catch(function () { return post('http://127.0.0.1:8081/messages'); })
-            .then(function (r) { return r.json(); })
-            .then(function (d) {
-              if (d && d.ok) {
-                msgContent.value = '';
-                loadMessages();
-              } else {
-                alert('发送失败：' + (d && d.error || '未知错误'));
-              }
-            })
-            .catch(function () { alert('发送失败，请稍后再试'); })
-            .then(function () {
-              msgBtn.disabled = false;
-              msgBtn.textContent = '发送留言';
-            });
-        });
-      }
-    })();
-  </script>
-
-  <script>
-    (function () {
-      function api(p) {
-        return fetch(p, { cache: 'no-store' }).then(function (r) {
-          if (!r.ok) throw new Error('bad');
-          return r.json();
-        }).catch(function () {
-          return fetch('http://127.0.0.1:8081' + p, { cache: 'no-store' }).then(function (r) { return r.json(); });
-        });
-      }
-      function paint(counts) {
-        document.querySelectorAll('.like-btn').forEach(function (btn) {
-          var k = btn.getAttribute('data-post');
-          var n = (counts && counts[k]) || 0;
-          btn.querySelector('b').textContent = n;
-        });
-      }
-      api('/likes').then(function (d) { paint(d && d.likes); }).catch(function () {});
-      document.querySelectorAll('.like-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          var k = btn.getAttribute('data-post');
-          var body = JSON.stringify({ post: k });
-          function post(url) {
-            return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body })
-              .then(function (r) { if (!r.ok) throw new Error('bad status'); return r.json(); });
-          }
-          post('/like').catch(function () { return post('http://127.0.0.1:8081/like'); })
-            .then(function (d) { return d; })
-            .then(function (d) {
-              if (d && d.ok) {
-                btn.querySelector('b').textContent = d.count;
-                btn.classList.toggle('liked', !!d.liked);
-              }
-            })
-            .catch(function () {});
-        });
-      });
-    })();
-  </script>
-
-
-  <script>
-    (function () {
       var fileInput = document.getElementById('up-file');
       var btn = document.getElementById('up-btn');
       var bar = document.getElementById('up-bar');
@@ -717,65 +544,98 @@
       var count = document.getElementById('up-count');
       if (!fileInput || !btn) return;
 
+      var CHUNK = 8 * 1024 * 1024;
+      function base() {
+        return location.hostname === '127.0.0.1' ? 'http://127.0.0.1:8081' : '';
+      }
       function api(p) {
         return fetch(p, { cache: 'no-store' }).then(function (r) {
           if (!r.ok) throw new Error('bad');
           return r.json();
         }).catch(function () {
-          return fetch('http://127.0.0.1:8081' + p, { cache: 'no-store' }).then(function (r) { return r.json(); });
+          return fetch('http://127.0.0.1:8081' + p, { cache: 'no-store' }).then(function (r) {
+            if (!r.ok) throw new Error('bad');
+            return r.json();
+          });
         });
-      }
-      function base() {
-        return location.hostname === '127.0.0.1' ? 'http://127.0.0.1:8081' : '';
       }
       function human(n) {
         if (n > 1048576) return (n / 1048576).toFixed(1) + ' MB';
         if (n > 1024) return Math.round(n / 1024) + ' KB';
         return n + ' B';
       }
-      function render(list2) {
+      function render(videos) {
         if (!list) return;
-        if (!list2 || !list2.length) {
+        if (!videos || !videos.length) {
           list.innerHTML = '<div class="msg-empty">还没有人上传视频</div>';
           if (count) count.textContent = '';
           return;
         }
-        if (count) count.textContent = '共 ' + list2.length + ' 个';
-        list.innerHTML = list2.map(function (v) {
+        if (count) count.textContent = '共 ' + videos.length + ' 个';
+        list.innerHTML = videos.map(function (v) {
           return '<div class="up-item"><video controls preload="metadata" src="' + base() + v.url + '"></video>' +
             '<div class="up-meta"><span>' + v.time + ' · ' + human(v.size) + '</span>' +
             '<a href="' + base() + v.url + '" download>下载</a></div></div>';
         }).join('');
       }
-      api('/videos').then(function (d) { render(d && d.videos); }).catch(function () {});
+      function refresh() { api('/videos').then(function (d) { render(d && d.videos); }).catch(function () {}); }
+      refresh();
+
+      function postChunk(url, blob, onProgress) {
+        return new Promise(function (resolve, reject) {
+          var xhr = new XMLHttpRequest();
+          xhr.open('POST', url);
+          xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+          xhr.upload.onprogress = onProgress;
+          xhr.onload = function () {
+            try { resolve(JSON.parse(xhr.responseText)); } catch (e) { reject(new Error(xhr.responseText || xhr.status)); }
+          };
+          xhr.onerror = function () { reject(new Error('network')); };
+          xhr.send(blob);
+        });
+      }
 
       btn.addEventListener('click', function () {
         var f = fileInput.files && fileInput.files[0];
         if (!f) { msg.textContent = '先选一个视频文件'; return; }
-        if (f.size > 90 * 1024 * 1024) { msg.textContent = '文件太大（最大 90MB）'; return; }
+        if (f.size > 1024 * 1024 * 1024) { msg.textContent = '文件太大（最大 1GB）'; return; }
+        var total = Math.ceil(f.size / CHUNK);
+        var id = 'u' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+        var index = 0;
         btn.disabled = true;
-        msg.textContent = '上传中…';
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', base() + '/upload?name=' + encodeURIComponent(f.name));
-        xhr.setRequestHeader('Content-Type', 'application/octet-stream');
-        xhr.upload.onprogress = function (e) {
-          if (e.lengthComputable && bar) bar.style.width = Math.round(e.loaded / e.total * 100) + '%';
-        };
-        xhr.onload = function () {
-          btn.disabled = false;
-          var ok = false;
-          try { ok = JSON.parse(xhr.responseText).ok; } catch (e) {}
-          if (ok) {
-            msg.textContent = '上传成功 ✅';
-            if (bar) bar.style.width = '100%';
-            fileInput.value = '';
-            api('/videos').then(function (d) { render(d && d.videos); });
-          } else {
-            msg.textContent = '上传失败：' + (xhr.responseText || xhr.status);
-          }
-        };
-        xhr.onerror = function () { btn.disabled = false; msg.textContent = '上传失败（网络错误）'; };
-        xhr.send(f);
+        msg.textContent = '上传中… 0%';
+
+        function step() {
+          if (index >= total) return;
+          var start = index * CHUNK;
+          var blob = f.slice(start, Math.min(start + CHUNK, f.size));
+          var url = base() + '/upload/chunk?id=' + encodeURIComponent(id) +
+                    '&index=' + index + '&total=' + total + '&name=' + encodeURIComponent(f.name);
+          postChunk(url, blob, function (e) {
+            if (e.lengthComputable) {
+              var done = index * CHUNK + e.loaded;
+              var pct = Math.min(99, Math.round(done / f.size * 100));
+              if (bar) bar.style.width = pct + '%';
+              msg.textContent = '上传中… ' + pct + '%  (' + (index + 1) + '/' + total + ')';
+            }
+          }).then(function (d) {
+            if (!d || !d.ok) throw new Error((d && d.error) || 'failed');
+            index += 1;
+            if (d.done) {
+              if (bar) bar.style.width = '100%';
+              msg.textContent = '上传成功 ✅ ' + human(d.size || f.size);
+              fileInput.value = '';
+              btn.disabled = false;
+              refresh();
+            } else {
+              step();
+            }
+          }).catch(function (err) {
+            btn.disabled = false;
+            msg.textContent = '上传失败：' + (err && err.message || err);
+          });
+        }
+        step();
       });
     })();
   </script>
