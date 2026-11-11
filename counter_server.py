@@ -17,8 +17,10 @@ OLD_COUNT = os.path.join(BASE, "visitor_count.json")
 OLD_LOG = os.path.join(BASE, "visitor_log.jsonl")
 
 UPLOAD_DIR = r"C:\inetpub\wwwroot\video\uploads"
-MAX_UPLOAD = 90 * 1024 * 1024  # 90MB（Cloudflare 免费版单请求上限 100MB）
-ALLOWED_EXT = {".mp4", ".webm", ".mov", ".m4v"}
+TMP_DIR = r"C:\inetpub\wwwroot\video\.tmp"
+MAX_UPLOAD = 1024 * 1024 * 1024  # 1GB（分片上传，单请求 <90MB 绕开 Cloudflare 100MB 限制）
+CHUNK_LIMIT = 90 * 1024 * 1024
+ALLOWED_EXT = {".mp4", ".webm", ".mov", ".m4v", ".mkv", ".avi"}
 
 GEO_CACHE = {}
 
@@ -429,9 +431,9 @@ class Handler(BaseHTTPRequestHandler):
                     self.wfile.write(b'{"ok":false,"error":"unsupported type"}')
                     return
                 length = int(self.headers.get("Content-Length") or 0)
-                if length <= 0 or length > MAX_UPLOAD:
+                if length <= 0 or length > CHUNK_LIMIT:
                     self._headers(413)
-                    self.wfile.write(json.dumps({"ok": False, "error": "file too large (max 90MB)"}).encode())
+                    self.wfile.write(json.dumps({"ok": False, "error": "single request too large, use chunked upload"}).encode())
                     return
                 os.makedirs(UPLOAD_DIR, exist_ok=True)
                 stamp = time.strftime("%Y%m%d-%H%M%S")
@@ -447,6 +449,62 @@ class Handler(BaseHTTPRequestHandler):
                         remain -= len(chunk)
                 self._headers()
                 self.wfile.write(json.dumps({"ok": True, "url": "/video/uploads/" + fn, "size": length}, ensure_ascii=False).encode("utf-8"))
+            except Exception as e:
+                self._headers(500)
+                self.wfile.write(json.dumps({"ok": False, "error": str(e)[:120]}).encode("utf-8"))
+        elif path in ("/upload/chunk", "/upload/chunk/"):
+            try:
+                qs = self.path.split("?", 1)[1] if "?" in self.path else ""
+                params = {}
+                for kv in qs.split("&"):
+                    if "=" in kv:
+                        k, v = kv.split("=", 1)
+                        params[k] = urllib.parse.unquote(v)
+                uid = safe_name(params.get("id") or "")
+                name = safe_name(params.get("name") or "video.mp4")
+                index = int(params.get("index") or 0)
+                total = int(params.get("total") or 1)
+                ext = os.path.splitext(name)[1].lower()
+                if not uid or ext not in ALLOWED_EXT:
+                    self._headers(400)
+                    self.wfile.write(b'{"ok":false,"error":"bad params"}')
+                    return
+                length = int(self.headers.get("Content-Length") or 0)
+                if length <= 0 or length > CHUNK_LIMIT:
+                    self._headers(413)
+                    self.wfile.write(b'{"ok":false,"error":"chunk too large"}')
+                    return
+                os.makedirs(TMP_DIR, exist_ok=True)
+                part = os.path.join(TMP_DIR, uid + ".part")
+                mode = "ab" if index > 0 else "wb"
+                with open(part, mode) as f:
+                    remain = length
+                    while remain > 0:
+                        chunk = self.rfile.read(min(1 << 20, remain))
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        remain -= len(chunk)
+                if os.path.getsize(part) > MAX_UPLOAD:
+                    try:
+                        os.remove(part)
+                    except Exception:
+                        pass
+                    self._headers(413)
+                    self.wfile.write(b'{"ok":false,"error":"file too large (max 1GB)"}')
+                    return
+                if index >= total - 1:
+                    os.makedirs(UPLOAD_DIR, exist_ok=True)
+                    stamp = time.strftime("%Y%m%d-%H%M%S")
+                    fn = "%s-%s%s" % (stamp, os.path.splitext(name)[0][:50], ext)
+                    dst = os.path.join(UPLOAD_DIR, fn)
+                    os.replace(part, dst)
+                    self._headers()
+                    self.wfile.write(json.dumps({"ok": True, "done": True, "url": "/video/uploads/" + fn,
+                                                 "size": os.path.getsize(dst)}, ensure_ascii=False).encode("utf-8"))
+                else:
+                    self._headers()
+                    self.wfile.write(json.dumps({"ok": True, "done": False, "received": index + 1, "total": total}).encode("utf-8"))
             except Exception as e:
                 self._headers(500)
                 self.wfile.write(json.dumps({"ok": False, "error": str(e)[:120]}).encode("utf-8"))
