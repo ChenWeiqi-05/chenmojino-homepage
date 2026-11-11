@@ -72,7 +72,7 @@ def db():
     conn.execute("""CREATE TABLE IF NOT EXISTS comments (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         post_id INTEGER NOT NULL,
-        time TEXT, name TEXT, text TEXT, ip TEXT
+        time TEXT, name TEXT, text TEXT, ip TEXT, media TEXT
     )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS geo_cache (
         ip TEXT PRIMARY KEY,
@@ -84,6 +84,12 @@ def db():
     )""")
     conn.execute("INSERT OR IGNORE INTO counter (id, count) VALUES (1, 0)")
     # 老库补列
+    ccols = {r[1] for r in conn.execute("PRAGMA table_info(comments)").fetchall()}
+    if "media" not in ccols:
+        try:
+            conn.execute("ALTER TABLE comments ADD COLUMN media TEXT")
+        except Exception:
+            pass
     cols = {r[1] for r in conn.execute("PRAGMA table_info(visits)").fetchall()}
     for col in ("browser", "os", "device", "referer", "screen", "lang"):
         if col not in cols:
@@ -264,25 +270,25 @@ def all_posts():
             likes = conn.execute("SELECT COUNT(*) FROM likes WHERE post = ?", ("post" + str(pid),)).fetchone()[0]
             reposts = conn.execute("SELECT COUNT(*) FROM reposts WHERE post_id = ?", (pid,)).fetchone()[0]
             crows = conn.execute(
-                "SELECT time, name, text FROM comments WHERE post_id = ? ORDER BY id ASC LIMIT 200", (pid,)
+                "SELECT time, name, text, COALESCE(media, '') FROM comments WHERE post_id = ? ORDER BY id ASC LIMIT 200", (pid,)
             ).fetchall()
             out.append({
                 "id": pid, "time": r[1] or "", "name": r[2] or "", "text": r[3] or "",
                 "media": r[4] or "", "kind": r[5] or "",
                 "likes": likes, "reposts": reposts,
-                "comments": [{"time": c[0] or "", "name": c[1] or "", "text": c[2] or ""} for c in crows],
+                "comments": [{"time": c[0] or "", "name": c[1] or "", "text": c[2] or "", "media": c[3] or ""} for c in crows],
             })
         return out
     finally:
         conn.close()
 
 
-def add_comment(post_id, name, text, ip):
+def add_comment(post_id, name, text, ip, media=""):
     conn = db()
     try:
         conn.execute(
-            "INSERT INTO comments (post_id, time, name, text, ip) VALUES (?,?,?,?,?)",
-            (post_id, time.strftime("%m-%d %H:%M"), name, text, ip),
+            "INSERT INTO comments (post_id, time, name, text, ip, media) VALUES (?,?,?,?,?,?)",
+            (post_id, time.strftime("%m-%d %H:%M"), name, text, ip, media),
         )
         conn.commit()
     finally:
@@ -571,7 +577,7 @@ class Handler(BaseHTTPRequestHandler):
                 data = json.loads(raw.decode("utf-8", "replace") or "{}")
                 name = str(data.get("name") or "").strip()[:20] or "匿名"
                 text = str(data.get("text") or "").strip()[:1000]
-                media = str(data.get("media") or "").strip()[:300]
+                media = str(data.get("media") or "").strip()[:1200]
                 kind = str(data.get("kind") or "").strip()[:10]
                 if not text and not media:
                     self._headers(400)
@@ -596,8 +602,9 @@ class Handler(BaseHTTPRequestHandler):
                     self._headers(400)
                     self.wfile.write(b'{"ok":false,"error":"bad comment"}')
                     return
+                media = str(data.get("media") or "").strip()[:1200]
                 ip = client_ip(self)
-                add_comment(pid, name, text, ip)
+                add_comment(pid, name, text, ip, media)
                 self._headers()
                 self.wfile.write(json.dumps({"ok": True, "posts": all_posts()}, ensure_ascii=False).encode("utf-8"))
             except Exception as e:
