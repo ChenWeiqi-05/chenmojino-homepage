@@ -180,6 +180,45 @@
   .like-btn.liked { color: #f87171; }
   .like-btn b { font-weight: 600; }
 
+  .videos { margin-top: 30px; }
+  .video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .video-card { margin: 0; background: rgba(0,0,0,.3); border: 1px solid rgba(52,211,153,.16); border-radius: 18px; overflow: hidden; }
+  .video-card video { display: block; width: 100%; aspect-ratio: 16 / 9; background: #000; }
+  .video-card figcaption { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 14px; font-size: 12.5px; color: #6f8d81; }
+  .video-card figcaption b { color: #f6f2ea; font-size: 13.5px; }
+
+  /* ---- 上传视频 ---- */
+  .upload-box { margin-top: 30px; }
+  .upload-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .upload-row input[type=file] {
+    flex: 1 1 260px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px dashed rgba(52,211,153,.35);
+    background: rgba(0,0,0,.25);
+    color: #b9d3c9;
+    font-size: 13px;
+  }
+  .upload-row button {
+    padding: 10px 22px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #10b981, #f59e0b);
+    color: #06231b;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .upload-row button:disabled { opacity: .5; cursor: default; }
+  .up-progress { height: 6px; border-radius: 3px; background: rgba(255,255,255,.08); margin-top: 12px; overflow: hidden; }
+  #up-bar { height: 100%; width: 0; background: linear-gradient(90deg, #34d399, #fbbf24); transition: width .2s; }
+  .up-msg { font-size: 12.5px; color: #6f8d81; margin-top: 8px; min-height: 18px; }
+  .up-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 12px; }
+  .up-item { background: rgba(0,0,0,.3); border: 1px solid rgba(52,211,153,.16); border-radius: 16px; overflow: hidden; }
+  .up-item video { display: block; width: 100%; aspect-ratio: 16 / 9; background: #000; }
+  .up-item .up-meta { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; font-size: 12px; color: #6f8d81; gap: 10px; }
+  .up-item .up-meta a { color: #34d399; text-decoration: none; }
+
 </style>
 </head>
 <body>
@@ -323,6 +362,47 @@
       </div>
     </section>
 
+
+    <section class="videos">
+      <div class="visit-log-head">
+        <h3>🎬 视频片段</h3>
+        <span class="visit-log-total">预告片精选 · 各 25 秒</span>
+      </div>
+      <div class="video-grid">
+        <figure class="video-card">
+          <video controls preload="metadata" playsinline poster="img/p5.jpg" src="video/br2049.mp4"></video>
+          <figcaption><b>银翼杀手 2049</b><span>雾中的洛杉矶</span></figcaption>
+        </figure>
+        <figure class="video-card">
+          <video controls preload="metadata" playsinline poster="img/p3.jpg" src="video/covenant.mp4"></video>
+          <figcaption><b>异形：契约</b><span>陌生的星球</span></figcaption>
+        </figure>
+        <figure class="video-card">
+          <video controls preload="metadata" playsinline poster="img/p1.jpg" src="video/prometheus.mp4"></video>
+          <figcaption><b>普罗米修斯</b><span>寻找造物主</span></figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="upload-box">
+      <div class="visit-log-head">
+        <h3>📤 上传视频</h3>
+        <span class="visit-log-total">mp4 / webm / mov · 最大 90MB</span>
+      </div>
+      <div class="upload-row">
+        <input id="up-file" type="file" accept="video/mp4,video/webm,video/quicktime,video/x-m4v" />
+        <button id="up-btn" type="button">开始上传</button>
+      </div>
+      <div class="up-progress"><div id="up-bar"></div></div>
+      <div id="up-msg" class="up-msg"></div>
+
+      <div class="visit-log-head" style="margin-top:22px;">
+        <h3>🎞 已上传的视频</h3>
+        <span class="visit-log-total" id="up-count"></span>
+      </div>
+      <div class="up-list" id="up-list"><div class="msg-empty">还没有人上传视频</div></div>
+    </section>
+
     <div class="grid">
       <section class="item">
         <h3>关于我</h3>
@@ -413,6 +493,45 @@
   .like-btn:active { transform: scale(1.15); }
   .like-btn.liked { color: #f87171; }
   .like-btn b { font-weight: 600; }
+
+  .videos { margin-top: 30px; }
+  .video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  .video-card { margin: 0; background: rgba(0,0,0,.3); border: 1px solid rgba(52,211,153,.16); border-radius: 18px; overflow: hidden; }
+  .video-card video { display: block; width: 100%; aspect-ratio: 16 / 9; background: #000; }
+  .video-card figcaption { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 14px; font-size: 12.5px; color: #6f8d81; }
+  .video-card figcaption b { color: #f6f2ea; font-size: 13.5px; }
+
+  /* ---- 上传视频 ---- */
+  .upload-box { margin-top: 30px; }
+  .upload-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .upload-row input[type=file] {
+    flex: 1 1 260px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px dashed rgba(52,211,153,.35);
+    background: rgba(0,0,0,.25);
+    color: #b9d3c9;
+    font-size: 13px;
+  }
+  .upload-row button {
+    padding: 10px 22px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #10b981, #f59e0b);
+    color: #06231b;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .upload-row button:disabled { opacity: .5; cursor: default; }
+  .up-progress { height: 6px; border-radius: 3px; background: rgba(255,255,255,.08); margin-top: 12px; overflow: hidden; }
+  #up-bar { height: 100%; width: 0; background: linear-gradient(90deg, #34d399, #fbbf24); transition: width .2s; }
+  .up-msg { font-size: 12.5px; color: #6f8d81; margin-top: 8px; min-height: 18px; }
+  .up-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 12px; }
+  .up-item { background: rgba(0,0,0,.3); border: 1px solid rgba(52,211,153,.16); border-radius: 16px; overflow: hidden; }
+  .up-item video { display: block; width: 100%; aspect-ratio: 16 / 9; background: #000; }
+  .up-item .up-meta { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; font-size: 12px; color: #6f8d81; gap: 10px; }
+  .up-item .up-meta a { color: #34d399; text-decoration: none; }
 
 </style>
   <script>
@@ -583,6 +702,80 @@
             })
             .catch(function () {});
         });
+      });
+    })();
+  </script>
+
+
+  <script>
+    (function () {
+      var fileInput = document.getElementById('up-file');
+      var btn = document.getElementById('up-btn');
+      var bar = document.getElementById('up-bar');
+      var msg = document.getElementById('up-msg');
+      var list = document.getElementById('up-list');
+      var count = document.getElementById('up-count');
+      if (!fileInput || !btn) return;
+
+      function api(p) {
+        return fetch(p, { cache: 'no-store' }).then(function (r) {
+          if (!r.ok) throw new Error('bad');
+          return r.json();
+        }).catch(function () {
+          return fetch('http://127.0.0.1:8081' + p, { cache: 'no-store' }).then(function (r) { return r.json(); });
+        });
+      }
+      function base() {
+        return location.hostname === '127.0.0.1' ? 'http://127.0.0.1:8081' : '';
+      }
+      function human(n) {
+        if (n > 1048576) return (n / 1048576).toFixed(1) + ' MB';
+        if (n > 1024) return Math.round(n / 1024) + ' KB';
+        return n + ' B';
+      }
+      function render(list2) {
+        if (!list) return;
+        if (!list2 || !list2.length) {
+          list.innerHTML = '<div class="msg-empty">还没有人上传视频</div>';
+          if (count) count.textContent = '';
+          return;
+        }
+        if (count) count.textContent = '共 ' + list2.length + ' 个';
+        list.innerHTML = list2.map(function (v) {
+          return '<div class="up-item"><video controls preload="metadata" src="' + base() + v.url + '"></video>' +
+            '<div class="up-meta"><span>' + v.time + ' · ' + human(v.size) + '</span>' +
+            '<a href="' + base() + v.url + '" download>下载</a></div></div>';
+        }).join('');
+      }
+      api('/videos').then(function (d) { render(d && d.videos); }).catch(function () {});
+
+      btn.addEventListener('click', function () {
+        var f = fileInput.files && fileInput.files[0];
+        if (!f) { msg.textContent = '先选一个视频文件'; return; }
+        if (f.size > 90 * 1024 * 1024) { msg.textContent = '文件太大（最大 90MB）'; return; }
+        btn.disabled = true;
+        msg.textContent = '上传中…';
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', base() + '/upload?name=' + encodeURIComponent(f.name));
+        xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+        xhr.upload.onprogress = function (e) {
+          if (e.lengthComputable && bar) bar.style.width = Math.round(e.loaded / e.total * 100) + '%';
+        };
+        xhr.onload = function () {
+          btn.disabled = false;
+          var ok = false;
+          try { ok = JSON.parse(xhr.responseText).ok; } catch (e) {}
+          if (ok) {
+            msg.textContent = '上传成功 ✅';
+            if (bar) bar.style.width = '100%';
+            fileInput.value = '';
+            api('/videos').then(function (d) { render(d && d.videos); });
+          } else {
+            msg.textContent = '上传失败：' + (xhr.responseText || xhr.status);
+          }
+        };
+        xhr.onerror = function () { btn.disabled = false; msg.textContent = '上传失败（网络错误）'; };
+        xhr.send(f);
       });
     })();
   </script>
