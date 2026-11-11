@@ -63,6 +63,17 @@ def db():
         time TEXT,
         PRIMARY KEY (post, ip)
     )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS reposts (
+        post_id INTEGER NOT NULL,
+        ip TEXT NOT NULL,
+        time TEXT,
+        PRIMARY KEY (post_id, ip)
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS comments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        post_id INTEGER NOT NULL,
+        time TEXT, name TEXT, text TEXT, ip TEXT
+    )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS geo_cache (
         ip TEXT PRIMARY KEY,
         country TEXT, region TEXT, city TEXT, isp TEXT
@@ -247,8 +258,69 @@ def all_posts():
         rows = conn.execute(
             "SELECT id, time, name, text, media, kind FROM posts ORDER BY id DESC LIMIT 100"
         ).fetchall()
-        return [{"id": r[0], "time": r[1] or "", "name": r[2] or "", "text": r[3] or "",
-                 "media": r[4] or "", "kind": r[5] or ""} for r in rows]
+        out = []
+        for r in rows:
+            pid = r[0]
+            likes = conn.execute("SELECT COUNT(*) FROM likes WHERE post = ?", ("post" + str(pid),)).fetchone()[0]
+            reposts = conn.execute("SELECT COUNT(*) FROM reposts WHERE post_id = ?", (pid,)).fetchone()[0]
+            crows = conn.execute(
+                "SELECT time, name, text FROM comments WHERE post_id = ? ORDER BY id ASC LIMIT 200", (pid,)
+            ).fetchall()
+            out.append({
+                "id": pid, "time": r[1] or "", "name": r[2] or "", "text": r[3] or "",
+                "media": r[4] or "", "kind": r[5] or "",
+                "likes": likes, "reposts": reposts,
+                "comments": [{"time": c[0] or "", "name": c[1] or "", "text": c[2] or ""} for c in crows],
+            })
+        return out
+    finally:
+        conn.close()
+
+
+def add_comment(post_id, name, text, ip):
+    conn = db()
+    try:
+        conn.execute(
+            "INSERT INTO comments (post_id, time, name, text, ip) VALUES (?,?,?,?,?)",
+            (post_id, time.strftime("%m-%d %H:%M"), name, text, ip),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def toggle_repost(post_id, ip):
+    conn = db()
+    try:
+        row = conn.execute("SELECT 1 FROM reposts WHERE post_id = ? AND ip = ?", (post_id, ip)).fetchone()
+        if row:
+            conn.execute("DELETE FROM reposts WHERE post_id = ? AND ip = ?", (post_id, ip))
+            mine = False
+        else:
+            conn.execute("INSERT INTO reposts (post_id, ip, time) VALUES (?,?,?)",
+                         (post_id, ip, time.strftime("%Y-%m-%d %H:%M")))
+            mine = True
+        conn.commit()
+        n = conn.execute("SELECT COUNT(*) FROM reposts WHERE post_id = ?", (post_id,)).fetchone()[0]
+        return n, mine
+    finally:
+        conn.close()
+
+
+def toggle_like(post, ip):
+    conn = db()
+    try:
+        row = conn.execute("SELECT 1 FROM likes WHERE post = ? AND ip = ?", (post, ip)).fetchone()
+        if row:
+            conn.execute("DELETE FROM likes WHERE post = ? AND ip = ?", (post, ip))
+            mine = False
+        else:
+            conn.execute("INSERT INTO likes (post, ip, time) VALUES (?,?,?)",
+                         (post, ip, time.strftime("%Y-%m-%d %H:%M")))
+            mine = True
+        conn.commit()
+        n = conn.execute("SELECT COUNT(*) FROM likes WHERE post = ?", (post,)).fetchone()[0]
+        return n, mine
     finally:
         conn.close()
 
@@ -509,6 +581,41 @@ class Handler(BaseHTTPRequestHandler):
                 add_post(name, text, media, kind, ip)
                 self._headers()
                 self.wfile.write(json.dumps({"ok": True, "posts": all_posts()}, ensure_ascii=False).encode("utf-8"))
+            except Exception as e:
+                self._headers(500)
+                self.wfile.write(json.dumps({"ok": False, "error": str(e)[:120]}).encode("utf-8"))
+        elif path in ("/comment", "/comment/"):
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+                raw = self.rfile.read(min(length, 20000)) if length > 0 else b"{}"
+                data = json.loads(raw.decode("utf-8", "replace") or "{}")
+                pid = int(data.get("post_id") or 0)
+                name = str(data.get("name") or "").strip()[:20] or "匿名"
+                text = str(data.get("text") or "").strip()[:500]
+                if not pid or not text:
+                    self._headers(400)
+                    self.wfile.write(b'{"ok":false,"error":"bad comment"}')
+                    return
+                ip = client_ip(self)
+                add_comment(pid, name, text, ip)
+                self._headers()
+                self.wfile.write(json.dumps({"ok": True, "posts": all_posts()}, ensure_ascii=False).encode("utf-8"))
+            except Exception as e:
+                self._headers(500)
+                self.wfile.write(json.dumps({"ok": False, "error": str(e)[:120]}).encode("utf-8"))
+        elif path in ("/repost", "/repost/"):
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+                raw = self.rfile.read(min(length, 5000)) if length > 0 else b"{}"
+                data = json.loads(raw.decode("utf-8", "replace") or "{}")
+                pid = int(data.get("post_id") or 0)
+                if not pid:
+                    self._headers(400)
+                    self.wfile.write(b'{"ok":false,"error":"post_id required"}')
+                    return
+                n, mine = toggle_repost(pid, client_ip(self))
+                self._headers()
+                self.wfile.write(json.dumps({"ok": True, "count": n, "reposted": mine}).encode("utf-8"))
             except Exception as e:
                 self._headers(500)
                 self.wfile.write(json.dumps({"ok": False, "error": str(e)[:120]}).encode("utf-8"))
