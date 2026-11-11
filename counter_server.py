@@ -18,10 +18,13 @@ OLD_COUNT = os.path.join(BASE, "visitor_count.json")
 OLD_LOG = os.path.join(BASE, "visitor_log.jsonl")
 
 UPLOAD_DIR = r"C:\inetpub\wwwroot\video\uploads"
+IMG_DIR = r"C:\inetpub\wwwroot\img\uploads"
 TMP_DIR = r"C:\inetpub\wwwroot\video\.tmp"
 MAX_UPLOAD = 1024 * 1024 * 1024  # 1GB（分片上传，单请求 <90MB 绕开 Cloudflare 100MB 限制）
 CHUNK_LIMIT = 90 * 1024 * 1024
-ALLOWED_EXT = {".mp4", ".webm", ".mov", ".m4v", ".mkv", ".avi"}
+IMAGE_EXT = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+VIDEO_EXT = {".mp4", ".webm", ".mov", ".m4v", ".mkv", ".avi"}
+ALLOWED_EXT = IMAGE_EXT | VIDEO_EXT
 
 GEO_CACHE = {}
 
@@ -63,6 +66,10 @@ def db():
     conn.execute("""CREATE TABLE IF NOT EXISTS geo_cache (
         ip TEXT PRIMARY KEY,
         country TEXT, region TEXT, city TEXT, isp TEXT
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS posts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        time TEXT, name TEXT, text TEXT, media TEXT, kind TEXT, ip TEXT
     )""")
     conn.execute("INSERT OR IGNORE INTO counter (id, count) VALUES (1, 0)")
     # 老库补列
@@ -222,6 +229,30 @@ def safe_name(name):
     return name[:80]
 
 
+def add_post(name, text, media, kind, ip):
+    conn = db()
+    try:
+        conn.execute(
+            "INSERT INTO posts (time, name, text, media, kind, ip) VALUES (?,?,?,?,?,?)",
+            (time.strftime("%Y-%m-%d %H:%M"), name, text, media, kind, ip),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def all_posts():
+    conn = db()
+    try:
+        rows = conn.execute(
+            "SELECT id, time, name, text, media, kind FROM posts ORDER BY id DESC LIMIT 100"
+        ).fetchall()
+        return [{"id": r[0], "time": r[1] or "", "name": r[2] or "", "text": r[3] or "",
+                 "media": r[4] or "", "kind": r[5] or ""} for r in rows]
+    finally:
+        conn.close()
+
+
 def list_uploads():
     out = []
     if not os.path.isdir(UPLOAD_DIR):
@@ -250,7 +281,7 @@ def client_ip(handler):
     return handler.client_address[0]
 
 
-def geo_lookup(ip, wait=0.8):
+def geo_lookup(ip, wait=0.0):
     """先查内存/数据库缓存；未命中时最多等 wait 秒，超时就返回空并后台补"""
     if ip in GEO_CACHE:
         return GEO_CACHE[ip]
@@ -395,6 +426,9 @@ class Handler(BaseHTTPRequestHandler):
         elif path in ("/videos", "/videos/"):
             self._headers()
             self.wfile.write(json.dumps({"videos": list_uploads()}, ensure_ascii=False).encode("utf-8"))
+        elif path in ("/posts", "/posts/"):
+            self._headers()
+            self.wfile.write(json.dumps({"posts": all_posts()}, ensure_ascii=False).encode("utf-8"))
         elif path in ("/visits", "/visits/"):
             rows = all_visits()
             visits = []
@@ -458,6 +492,26 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._headers(500)
                 self.wfile.write(json.dumps({"ok": False, "error": str(e)[:100]}).encode("utf-8"))
+        elif path in ("/post", "/post/"):
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+                raw = self.rfile.read(min(length, 20000)) if length > 0 else b"{}"
+                data = json.loads(raw.decode("utf-8", "replace") or "{}")
+                name = str(data.get("name") or "").strip()[:20] or "匿名"
+                text = str(data.get("text") or "").strip()[:1000]
+                media = str(data.get("media") or "").strip()[:300]
+                kind = str(data.get("kind") or "").strip()[:10]
+                if not text and not media:
+                    self._headers(400)
+                    self.wfile.write(b'{"ok":false,"error":"empty post"}')
+                    return
+                ip = client_ip(self)
+                add_post(name, text, media, kind, ip)
+                self._headers()
+                self.wfile.write(json.dumps({"ok": True, "posts": all_posts()}, ensure_ascii=False).encode("utf-8"))
+            except Exception as e:
+                self._headers(500)
+                self.wfile.write(json.dumps({"ok": False, "error": str(e)[:120]}).encode("utf-8"))
         elif path in ("/upload", "/upload/"):
             try:
                 qs = self.path.split("?", 1)[1] if "?" in self.path else ""
@@ -477,10 +531,13 @@ class Handler(BaseHTTPRequestHandler):
                     self._headers(413)
                     self.wfile.write(json.dumps({"ok": False, "error": "single request too large, use chunked upload"}).encode())
                     return
-                os.makedirs(UPLOAD_DIR, exist_ok=True)
+                is_image = ext in IMAGE_EXT
+                target_dir = IMG_DIR if is_image else UPLOAD_DIR
+                url_prefix = "/img/uploads/" if is_image else "/video/uploads/"
+                os.makedirs(target_dir, exist_ok=True)
                 stamp = time.strftime("%Y%m%d-%H%M%S")
                 fn = "%s-%s%s" % (stamp, os.path.splitext(name)[0][:50], ext)
-                dst = os.path.join(UPLOAD_DIR, fn)
+                dst = os.path.join(target_dir, fn)
                 remain = length
                 with open(dst, "wb") as f:
                     while remain > 0:
@@ -490,7 +547,7 @@ class Handler(BaseHTTPRequestHandler):
                         f.write(chunk)
                         remain -= len(chunk)
                 self._headers()
-                self.wfile.write(json.dumps({"ok": True, "url": "/video/uploads/" + fn, "size": length}, ensure_ascii=False).encode("utf-8"))
+                self.wfile.write(json.dumps({"ok": True, "url": url_prefix + fn, "size": length}, ensure_ascii=False).encode("utf-8"))
             except Exception as e:
                 self._headers(500)
                 self.wfile.write(json.dumps({"ok": False, "error": str(e)[:120]}).encode("utf-8"))
@@ -536,13 +593,16 @@ class Handler(BaseHTTPRequestHandler):
                     self.wfile.write(b'{"ok":false,"error":"file too large (max 1GB)"}')
                     return
                 if index >= total - 1:
-                    os.makedirs(UPLOAD_DIR, exist_ok=True)
+                    is_image = ext in IMAGE_EXT
+                    target_dir = IMG_DIR if is_image else UPLOAD_DIR
+                    url_prefix = "/img/uploads/" if is_image else "/video/uploads/"
+                    os.makedirs(target_dir, exist_ok=True)
                     stamp = time.strftime("%Y%m%d-%H%M%S")
                     fn = "%s-%s%s" % (stamp, os.path.splitext(name)[0][:50], ext)
-                    dst = os.path.join(UPLOAD_DIR, fn)
+                    dst = os.path.join(target_dir, fn)
                     os.replace(part, dst)
                     self._headers()
-                    self.wfile.write(json.dumps({"ok": True, "done": True, "url": "/video/uploads/" + fn,
+                    self.wfile.write(json.dumps({"ok": True, "done": True, "url": url_prefix + fn,
                                                  "size": os.path.getsize(dst)}, ensure_ascii=False).encode("utf-8"))
                 else:
                     self._headers()
