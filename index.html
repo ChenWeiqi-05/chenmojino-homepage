@@ -247,6 +247,10 @@
   #post-list .who .dot { color: #4e6b60; }
   #post-list .post-text { margin: 4px 0 10px; font-size: 15px; line-height: 1.6; color: #dbeadf; }
   #post-list .post-img, #post-list video { margin-bottom: 10px; }
+  #post-list .post > .who, #post-list .post > .post-text,
+  #post-list .post > .post-img, #post-list .post > video,
+  #post-list .post > .post-foot { grid-column: 2; }
+  #post-list .post > .cmt-box { grid-column: 1 / -1; }
   #post-list .post-foot {
     display: flex; gap: 28px; margin-top: 4px;
     color: #6f8d81; font-size: 13px;
@@ -273,6 +277,32 @@
     background: linear-gradient(135deg, #10b981, #f59e0b); color: #06231b; font-weight: 700; font-size: 12.5px;
   }
   #post-list .post-foot .act.reposted { color: #34d399; }
+
+  /* ---- 手机端适配（防止输入框缩放 / 溢出） ---- */
+  @media (max-width: 680px) {
+    .card { padding: 30px 18px; border-radius: 20px; }
+    .post-composer input, .post-composer textarea,
+    #post-list .cmt-form input, .upload-row input[type=file] {
+      font-size: 16px;   /* iOS 小于 16px 会自动放大页面 */
+    }
+    .pc-row { flex-direction: column; }
+    .pc-row input[type=text], .pc-row input[type=file] { flex: 1 1 auto; width: 100%; }
+    #post-list .post { grid-template-columns: 38px 1fr; gap: 10px; padding: 14px 12px; }
+    #post-list .avatar-sm { width: 38px; height: 38px; font-size: 13px; }
+    #post-list .cmt-form { flex-wrap: wrap; }
+    #post-list .cmt-form .cmt-name { flex: 1 1 100%; }
+    #post-list .cmt-form .cmt-text { flex: 1 1 100%; }
+    #post-list .cmt-form button { flex: 1 1 100%; padding: 12px; }
+    #post-list .post > .who, #post-list .post > .post-text,
+  #post-list .post > .post-img, #post-list .post > video,
+  #post-list .post > .post-foot { grid-column: 2; }
+  #post-list .post > .cmt-box { grid-column: 1 / -1; }
+  #post-list .post-foot { gap: 20px; font-size: 13.5px; }
+    .up-list { grid-template-columns: 1fr; }
+    .visitor-bar { grid-template-columns: 1fr 1fr; }
+    .grid { grid-template-columns: 1fr; }
+    .post-img, .video-card video { max-height: 320px; }
+  }
 </style>
 </head>
 <body>
@@ -561,6 +591,10 @@
   #post-list .who .dot { color: #4e6b60; }
   #post-list .post-text { margin: 4px 0 10px; font-size: 15px; line-height: 1.6; color: #dbeadf; }
   #post-list .post-img, #post-list video { margin-bottom: 10px; }
+  #post-list .post > .who, #post-list .post > .post-text,
+  #post-list .post > .post-img, #post-list .post > video,
+  #post-list .post > .post-foot { grid-column: 2; }
+  #post-list .post > .cmt-box { grid-column: 1 / -1; }
   #post-list .post-foot {
     display: flex; gap: 28px; margin-top: 4px;
     color: #6f8d81; font-size: 13px;
@@ -587,6 +621,32 @@
     background: linear-gradient(135deg, #10b981, #f59e0b); color: #06231b; font-weight: 700; font-size: 12.5px;
   }
   #post-list .post-foot .act.reposted { color: #34d399; }
+
+  /* ---- 手机端适配（防止输入框缩放 / 溢出） ---- */
+  @media (max-width: 680px) {
+    .card { padding: 30px 18px; border-radius: 20px; }
+    .post-composer input, .post-composer textarea,
+    #post-list .cmt-form input, .upload-row input[type=file] {
+      font-size: 16px;   /* iOS 小于 16px 会自动放大页面 */
+    }
+    .pc-row { flex-direction: column; }
+    .pc-row input[type=text], .pc-row input[type=file] { flex: 1 1 auto; width: 100%; }
+    #post-list .post { grid-template-columns: 38px 1fr; gap: 10px; padding: 14px 12px; }
+    #post-list .avatar-sm { width: 38px; height: 38px; font-size: 13px; }
+    #post-list .cmt-form { flex-wrap: wrap; }
+    #post-list .cmt-form .cmt-name { flex: 1 1 100%; }
+    #post-list .cmt-form .cmt-text { flex: 1 1 100%; }
+    #post-list .cmt-form button { flex: 1 1 100%; padding: 12px; }
+    #post-list .post > .who, #post-list .post > .post-text,
+  #post-list .post > .post-img, #post-list .post > video,
+  #post-list .post > .post-foot { grid-column: 2; }
+  #post-list .post > .cmt-box { grid-column: 1 / -1; }
+  #post-list .post-foot { gap: 20px; font-size: 13.5px; }
+    .up-list { grid-template-columns: 1fr; }
+    .visitor-bar { grid-template-columns: 1fr 1fr; }
+    .grid { grid-template-columns: 1fr; }
+    .post-img, .video-card video { max-height: 320px; }
+  }
 </style>
   <script>
     (function () {
