@@ -8,3 +8,6 @@ logs/
 # 临时
 *.tmp
 *.bak
+# 用户上传的视频（不入库）
+video/uploads/
+video/.tmp/
