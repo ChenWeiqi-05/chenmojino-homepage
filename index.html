@@ -102,41 +102,6 @@
   .visit-log-empty { color: #5f7a6f; text-align: center; }
   .visit-log-table td.ip { color: #7ff0c9; font-family: Consolas, monospace; }
 
-  /* ---- 留言板 ---- */
-  .msg-board { margin-top: 26px; }
-  .msg-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
-  .msg-form input, .msg-form textarea {
-    width: 100%;
-    padding: 11px 14px;
-    border-radius: 12px;
-    border: 1px solid rgba(52,211,153,.28);
-    background: rgba(0,0,0,.25);
-    color: #e8f5ef;
-    font-size: 14px;
-    font-family: inherit;
-    outline: none;
-    resize: vertical;
-  }
-  .msg-form input:focus, .msg-form textarea:focus { border-color: #34d399; box-shadow: 0 0 0 3px rgba(16,185,129,.15); }
-  .msg-form button {
-    align-self: flex-end;
-    padding: 10px 26px;
-    border: none;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #10b981, #f59e0b);
-    color: #06231b;
-    font-weight: 700;
-    font-size: 14px;
-    cursor: pointer;
-    transition: transform .2s, box-shadow .2s;
-  }
-  .msg-form button:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(16,185,129,.35); }
-  .msg-form button:disabled { opacity: .5; cursor: default; transform: none; }
-  .msg-list { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-  .msg-item { padding: 12px 14px; border-radius: 14px; background: rgba(16,185,129,.06); border: 1px solid rgba(52,211,153,.16); }
-  .msg-item .meta { display: flex; justify-content: space-between; font-size: 12px; color: #6f8d81; margin-bottom: 6px; }
-  .msg-item .meta b { color: #fbbf24; font-weight: 600; }
-  .msg-item .text { font-size: 14px; line-height: 1.7; color: #cfe6da; white-space: pre-wrap; word-break: break-word; }
   .msg-empty { color: #5f7a6f; font-size: 13px; text-align: center; padding: 18px 0; }
 
   /* ---- 动态 feed（X 风格卡片） ---- */
@@ -180,12 +145,6 @@
   .like-btn.liked { color: #f87171; }
   .like-btn b { font-weight: 600; }
 
-  .videos { margin-top: 30px; }
-  .video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-  .video-card { margin: 0; background: rgba(0,0,0,.3); border: 1px solid rgba(52,211,153,.16); border-radius: 18px; overflow: hidden; }
-  .video-card video { display: block; width: 100%; aspect-ratio: 16 / 9; background: #000; }
-  .video-card figcaption { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 14px; font-size: 12.5px; color: #6f8d81; }
-  .video-card figcaption b { color: #f6f2ea; font-size: 13.5px; }
 
   /* ---- 上传视频 ---- */
   .upload-box { margin-top: 30px; }
@@ -343,20 +302,6 @@
       </div>
     </section>
 
-    <section class="msg-board">
-      <div class="visit-log-head">
-        <h3>💬 留言板</h3>
-        <span id="msg-count" class="visit-log-total"></span>
-      </div>
-      <div class="msg-form">
-        <input id="msg-name" type="text" maxlength="20" placeholder="你的名字（可不填）" />
-        <textarea id="msg-content" maxlength="500" rows="2" placeholder="说点什么吧…（最多 500 字）"></textarea>
-        <button id="msg-submit" type="button">发送留言</button>
-      </div>
-      <div class="msg-list" id="msg-list">
-        <div class="msg-empty">还没有留言，来抢沙发～</div>
-      </div>
-    </section>
 
     <section class="feed">
       <div class="visit-log-head">
@@ -383,26 +328,6 @@
     </section>
 
 
-    <section class="videos">
-      <div class="visit-log-head">
-        <h3>🎬 视频片段</h3>
-        <span class="visit-log-total">预告片精选 · 各 25 秒</span>
-      </div>
-      <div class="video-grid">
-        <figure class="video-card">
-          <video controls preload="metadata" playsinline poster="img/p5.jpg" src="video/br2049.mp4"></video>
-          <figcaption><b>银翼杀手 2049</b><span>雾中的洛杉矶</span></figcaption>
-        </figure>
-        <figure class="video-card">
-          <video controls preload="metadata" playsinline poster="img/p3.jpg" src="video/covenant.mp4"></video>
-          <figcaption><b>异形：契约</b><span>陌生的星球</span></figcaption>
-        </figure>
-        <figure class="video-card">
-          <video controls preload="metadata" playsinline poster="img/p1.jpg" src="video/prometheus.mp4"></video>
-          <figcaption><b>普罗米修斯</b><span>寻找造物主</span></figcaption>
-        </figure>
-      </div>
-    </section>
 
     <section class="upload-box">
       <div class="visit-log-head">
@@ -515,12 +440,6 @@
   .like-btn.liked { color: #f87171; }
   .like-btn b { font-weight: 600; }
 
-  .videos { margin-top: 30px; }
-  .video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-  .video-card { margin: 0; background: rgba(0,0,0,.3); border: 1px solid rgba(52,211,153,.16); border-radius: 18px; overflow: hidden; }
-  .video-card video { display: block; width: 100%; aspect-ratio: 16 / 9; background: #000; }
-  .video-card figcaption { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 14px; font-size: 12.5px; color: #6f8d81; }
-  .video-card figcaption b { color: #f6f2ea; font-size: 13.5px; }
 
   /* ---- 上传视频 ---- */
   .upload-box { margin-top: 30px; }
@@ -828,51 +747,6 @@
         });
       });
 
-      /* ---- 留言板 ---- */
-      var msgList = document.getElementById('msg-list');
-      var msgCount = document.getElementById('msg-count');
-      var msgName = document.getElementById('msg-name');
-      var msgContent = document.getElementById('msg-content');
-      var msgBtn = document.getElementById('msg-submit');
-      function renderMessages(list) {
-        if (!msgList) return;
-        if (!list || !list.length) {
-          msgList.innerHTML = '<div class="msg-empty">还没有留言，来抢沙发～</div>';
-          if (msgCount) msgCount.textContent = '';
-          return;
-        }
-        if (msgCount) msgCount.textContent = '共 ' + list.length + ' 条留言';
-        msgList.innerHTML = list.map(function (m) {
-          return '<div class="msg-item"><div class="meta"><b>' + esc(m.name || '匿名') + '</b><span>' + esc(m.time) +
-            '</span></div><div class="text">' + esc(m.content) + '</div></div>';
-        }).join('');
-      }
-      function loadMessages() {
-        return jget('/messages').then(function (d) { renderMessages((d && d.messages) || []); })
-          .catch(function () { renderMessages([]); });
-      }
-      loadMessages();
-      if (msgBtn) {
-        msgBtn.addEventListener('click', function () {
-          var name = (msgName && msgName.value || '').trim();
-          var content = (msgContent && msgContent.value || '').trim();
-          if (!content) { if (msgContent) msgContent.focus(); return; }
-          msgBtn.disabled = true;
-          msgBtn.textContent = '发送中…';
-          var body = JSON.stringify({ name: name, content: content });
-          function post(url) {
-            return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body })
-              .then(function (r) { if (!r.ok) throw new Error('bad'); return r.json(); });
-          }
-          post(base() + '/messages').catch(function () { return post('http://127.0.0.1:8081/messages'); })
-            .then(function (d) {
-              if (d && d.ok) { msgContent.value = ''; loadMessages(); }
-              else { alert('发送失败：' + ((d && d.error) || '未知错误')); }
-            })
-            .catch(function () { alert('发送失败，请稍后再试'); })
-            .then(function () { msgBtn.disabled = false; msgBtn.textContent = '发送留言'; });
-        });
-      }
     })();
   </script>
 
