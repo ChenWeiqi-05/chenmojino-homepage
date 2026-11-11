@@ -6,6 +6,7 @@ GET /visits -> 返回全部访问记录（新到旧）
 import json
 import os
 import sqlite3
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -58,6 +59,10 @@ def db():
         ip TEXT NOT NULL,
         time TEXT,
         PRIMARY KEY (post, ip)
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS geo_cache (
+        ip TEXT PRIMARY KEY,
+        country TEXT, region TEXT, city TEXT, isp TEXT
     )""")
     conn.execute("INSERT OR IGNORE INTO counter (id, count) VALUES (1, 0)")
     # 老库补列
@@ -245,25 +250,62 @@ def client_ip(handler):
     return handler.client_address[0]
 
 
-def geo_lookup(ip):
+def geo_lookup(ip, wait=0.8):
+    """先查内存/数据库缓存；未命中时最多等 wait 秒，超时就返回空并后台补"""
     if ip in GEO_CACHE:
         return GEO_CACHE[ip]
-    info = {"country": "", "region": "", "city": "", "isp": ""}
+
+    # 数据库缓存
     try:
-        u = "http://ip-api.com/json/%s?lang=zh-CN&fields=status,country,regionName,city,isp" % ip
-        req = urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"})
-        d = json.loads(urllib.request.urlopen(req, timeout=5).read().decode("utf-8", "replace"))
-        if d.get("status") == "success":
-            info = {
-                "country": d.get("country") or "",
-                "region": d.get("regionName") or "",
-                "city": d.get("city") or "",
-                "isp": d.get("isp") or "",
-            }
+        conn = db()
+        row = conn.execute(
+            "SELECT country, region, city, isp FROM geo_cache WHERE ip = ?", (ip,)
+        ).fetchone()
+        conn.close()
+        if row:
+            info = {"country": row[0] or "", "region": row[1] or "", "city": row[2] or "", "isp": row[3] or ""}
+            GEO_CACHE[ip] = info
+            return info
     except Exception:
         pass
-    GEO_CACHE[ip] = info
-    return info
+
+    def fetch():
+        info = {"country": "", "region": "", "city": "", "isp": ""}
+        try:
+            u = "http://ip-api.com/json/%s?lang=zh-CN&fields=status,country,regionName,city,isp" % ip
+            req = urllib.request.Request(u, headers={"User-Agent": "Mozilla/5.0"})
+            d = json.loads(urllib.request.urlopen(req, timeout=4).read().decode("utf-8", "replace"))
+            if d.get("status") == "success":
+                info = {
+                    "country": d.get("country") or "",
+                    "region": d.get("regionName") or "",
+                    "city": d.get("city") or "",
+                    "isp": d.get("isp") or "",
+                }
+        except Exception:
+            pass
+        GEO_CACHE[ip] = info
+        try:
+            conn = db()
+            conn.execute(
+                "INSERT OR REPLACE INTO geo_cache (ip, country, region, city, isp) VALUES (?,?,?,?,?)",
+                (ip, info["country"], info["region"], info["city"], info["isp"]),
+            )
+            conn.commit()
+            conn.close()
+        except Exception:
+            pass
+        return info
+
+    # 最多等 wait 秒
+    result = {}
+    t = threading.Thread(target=lambda: result.setdefault("v", fetch()), daemon=True)
+    t.start()
+    t.join(wait)
+    if "v" in result:
+        return result["v"]
+    GEO_CACHE[ip] = {"country": "", "region": "", "city": "", "isp": ""}
+    return GEO_CACHE[ip]
 
 
 def parse_ua(ua):
