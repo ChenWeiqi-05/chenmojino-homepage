@@ -215,12 +215,39 @@
   .up-msg { font-size: 12.5px; color: #6f8d81; margin-top: 8px; min-height: 18px; }
   .up-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 12px; }
   .up-item { background: rgba(0,0,0,.3); border: 1px solid rgba(52,211,153,.16); border-radius: 16px; overflow: hidden; }
-  .up-item video { display: block; width: 100%; aspect-ratio: 16 / 9; background: #000; }
+  .up-item video { display: block; width: 100%; max-height: 420px; background: #000; object-fit: contain; }
   .up-item .up-meta { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; font-size: 12px; color: #6f8d81; gap: 10px; }
   .up-item .up-meta a { color: #34d399; text-decoration: none; }
 
   .up-hint { font-size: 12px; color: #5f7a6f; margin: 10px 0 0; line-height: 1.7; }
   .up-hint code { background: rgba(255,255,255,.06); padding: 1px 6px; border-radius: 6px; word-break: break-all; }
+
+  /* ---- 动态投稿 ---- */
+  .post-composer { background: rgba(0,0,0,.28); border: 1px solid rgba(52,211,153,.18); border-radius: 18px; padding: 16px; margin-bottom: 18px; }
+  .pc-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .pc-row input[type=text] { flex: 0 0 180px; }
+  .pc-row input[type=file] { flex: 1 1 240px; }
+  .post-composer input, .post-composer textarea {
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(52,211,153,.28);
+    background: rgba(0,0,0,.25);
+    color: #e8f5ef;
+    font-size: 13.5px;
+    font-family: inherit;
+    outline: none;
+  }
+  .post-composer textarea { width: 100%; resize: vertical; line-height: 1.6; }
+  .post-composer input:focus, .post-composer textarea:focus { border-color: #34d399; }
+  .pc-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+  .pc-msg { font-size: 12px; color: #6f8d81; }
+  .post-composer button {
+    padding: 10px 24px; border: none; border-radius: 12px;
+    background: linear-gradient(135deg, #10b981, #f59e0b);
+    color: #06231b; font-weight: 700; font-size: 14px; cursor: pointer;
+  }
+  .post-composer button:disabled { opacity: .5; cursor: default; }
+  .post .post-img, .post video { width: 100%; border-radius: 14px; display: block; border: 1px solid rgba(255,255,255,.06); max-height: 420px; object-fit: contain; background: #000; }
 </style>
 </head>
 <body>
@@ -287,80 +314,23 @@
     <section class="feed">
       <div class="visit-log-head">
         <h3>📸 最新动态</h3>
-        <span class="visit-log-total">异形 · 银翼杀手 2049</span>
+        <span class="visit-log-total" id="post-count"></span>
       </div>
-      <div class="feed-grid">
-        <article class="post">
-          <header class="post-head">
-            <div class="avatar-sm">CM</div>
-            <div class="who"><b>chenmojino</b><span>@chenmojino · 昨天</span></div>
-          </header>
-          <p class="post-text">展馆里这尊异形等身雕像，站近了才感受到 Giger 的生物机械美学有多狠。</p>
-          <img class="post-img" src="img/p1.jpg" alt="异形雕像" loading="lazy">
-          <footer class="post-foot">
-            <span>💬 12</span><span>🔁 8</span><button class="like-btn" type="button" data-post="p1">❤️ <b>96</b></button>
-          </footer>
-        </article>
 
-        <article class="post">
-          <header class="post-head">
-            <div class="avatar-sm">CM</div>
-            <div class="who"><b>chenmojino</b><span>@chenmojino · 昨天</span></div>
-          </header>
-          <p class="post-text">虫卵和抱脸虫的实物道具——生命周期的起点，也是噩梦的起点。</p>
-          <img class="post-img" src="img/p2.jpg" alt="异形卵与抱脸虫" loading="lazy">
-          <footer class="post-foot">
-            <span>💬 7</span><span>🔁 4</span><button class="like-btn" type="button" data-post="p2">❤️ <b>71</b></button>
-          </footer>
-        </article>
+      <div class="post-composer">
+        <div class="pc-row">
+          <input id="post-name" type="text" maxlength="20" placeholder="你的名字（可不填）" />
+          <input id="post-file" type="file" accept="image/*,video/*" />
+        </div>
+        <textarea id="post-text" maxlength="1000" rows="3" placeholder="说点什么…（可只发图 / 只发文字 / 图文都行）"></textarea>
+        <div class="pc-actions">
+          <span id="post-msg" class="pc-msg"></span>
+          <button id="post-btn" type="button">发布动态</button>
+        </div>
+      </div>
 
-        <article class="post">
-          <header class="post-head">
-            <div class="avatar-sm">CM</div>
-            <div class="who"><b>chenmojino</b><span>@chenmojino · 2 天前</span></div>
-          </header>
-          <p class="post-text">《异形》40 周年 4K 修复版封面。四十年过去，这个头型依然是影史最辨识度的怪物设计。</p>
-          <img class="post-img" src="img/p3.jpg" alt="异形40周年封面" loading="lazy">
-          <footer class="post-foot">
-            <span>💬 23</span><span>🔁 15</span><button class="like-btn" type="button" data-post="p3">❤️ <b>182</b></button>
-          </footer>
-        </article>
-
-        <article class="post">
-          <header class="post-head">
-            <div class="avatar-sm">CM</div>
-            <div class="who"><b>chenmojino</b><span>@chenmojino · 2 天前</span></div>
-          </header>
-          <p class="post-text">无眼、酸血、内颚——每一条设计都在说「为生存而生」。</p>
-          <img class="post-img" src="img/p4.jpg" alt="异形特写" loading="lazy">
-          <footer class="post-foot">
-            <span>💬 9</span><span>🔁 6</span><button class="like-btn" type="button" data-post="p4">❤️ <b>128</b></button>
-          </footer>
-        </article>
-
-        <article class="post">
-          <header class="post-head">
-            <div class="avatar-sm">CM</div>
-            <div class="who"><b>chenmojino</b><span>@chenmojino · 3 天前</span></div>
-          </header>
-          <p class="post-text">工程师母星：环形巨舰悬在城市上空，一个文明就这么消失了。</p>
-          <img class="post-img" src="img/p5.jpg" alt="工程师母星" loading="lazy">
-          <footer class="post-foot">
-            <span>💬 31</span><span>🔁 22</span><button class="like-btn" type="button" data-post="p5">❤️ <b>247</b></button>
-          </footer>
-        </article>
-
-        <article class="post">
-          <header class="post-head">
-            <div class="avatar-sm">CM</div>
-            <div class="who"><b>chenmojino</b><span>@chenmojino · 3 天前</span></div>
-          </header>
-          <p class="post-text">工程师议会：创世派 vs 毁灭派，为人类的命运吵了几万年。</p>
-          <img class="post-img" src="img/p6.jpg" alt="工程师议会" loading="lazy">
-          <footer class="post-foot">
-            <span>💬 18</span><span>🔁 11</span><button class="like-btn" type="button" data-post="p6">❤️ <b>163</b></button>
-          </footer>
-        </article>
+      <div class="feed-grid" id="post-list">
+        <div class="msg-empty">还没有动态，来发第一条吧～</div>
       </div>
     </section>
 
@@ -400,7 +370,7 @@
       <p class="up-hint">💡 大文件建议在本机用 <b>http://127.0.0.1</b> 打开本页上传（走局域网，实测比公网快 50 倍）；或直接把文件拷进 <code>C:\inetpub\wwwroot\video\uploads</code></p>
 
       <div class="visit-log-head" style="margin-top:22px;">
-        <h3>🎞 已上传的视频</h3>
+        <h3>🎞 站主的公开视频</h3>
         <span class="visit-log-total" id="up-count"></span>
       </div>
       <div class="up-list" id="up-list"><div class="msg-empty">还没有人上传视频</div></div>
@@ -532,12 +502,39 @@
   .up-msg { font-size: 12.5px; color: #6f8d81; margin-top: 8px; min-height: 18px; }
   .up-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 12px; }
   .up-item { background: rgba(0,0,0,.3); border: 1px solid rgba(52,211,153,.16); border-radius: 16px; overflow: hidden; }
-  .up-item video { display: block; width: 100%; aspect-ratio: 16 / 9; background: #000; }
+  .up-item video { display: block; width: 100%; max-height: 420px; background: #000; object-fit: contain; }
   .up-item .up-meta { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; font-size: 12px; color: #6f8d81; gap: 10px; }
   .up-item .up-meta a { color: #34d399; text-decoration: none; }
 
   .up-hint { font-size: 12px; color: #5f7a6f; margin: 10px 0 0; line-height: 1.7; }
   .up-hint code { background: rgba(255,255,255,.06); padding: 1px 6px; border-radius: 6px; word-break: break-all; }
+
+  /* ---- 动态投稿 ---- */
+  .post-composer { background: rgba(0,0,0,.28); border: 1px solid rgba(52,211,153,.18); border-radius: 18px; padding: 16px; margin-bottom: 18px; }
+  .pc-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .pc-row input[type=text] { flex: 0 0 180px; }
+  .pc-row input[type=file] { flex: 1 1 240px; }
+  .post-composer input, .post-composer textarea {
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(52,211,153,.28);
+    background: rgba(0,0,0,.25);
+    color: #e8f5ef;
+    font-size: 13.5px;
+    font-family: inherit;
+    outline: none;
+  }
+  .post-composer textarea { width: 100%; resize: vertical; line-height: 1.6; }
+  .post-composer input:focus, .post-composer textarea:focus { border-color: #34d399; }
+  .pc-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+  .pc-msg { font-size: 12px; color: #6f8d81; }
+  .post-composer button {
+    padding: 10px 24px; border: none; border-radius: 12px;
+    background: linear-gradient(135deg, #10b981, #f59e0b);
+    color: #06231b; font-weight: 700; font-size: 14px; cursor: pointer;
+  }
+  .post-composer button:disabled { opacity: .5; cursor: default; }
+  .post .post-img, .post video { width: 100%; border-radius: 14px; display: block; border: 1px solid rgba(255,255,255,.06); max-height: 420px; object-fit: contain; background: #000; }
 </style>
   <script>
     (function () {
@@ -578,7 +575,7 @@
         }
         if (count) count.textContent = '共 ' + videos.length + ' 个';
         list.innerHTML = videos.map(function (v) {
-          return '<div class="up-item"><video controls preload="metadata" src="' + v.url + '"></video>' +
+          return '<div class="up-item"><video controls preload="auto" playsinline src="' + v.url + '"></video>' +
             '<div class="up-meta"><span>' + v.time + ' · ' + human(v.size) + '</span>' +
             '<a href="' + v.url + '" download>下载</a></div></div>';
         }).join('');
@@ -781,6 +778,200 @@
             .then(function () { msgBtn.disabled = false; msgBtn.textContent = '发送留言'; });
         });
       }
+    })();
+  </script>
+
+
+  <script>
+    (function () {
+      // 网络抖动时自动重试视频（Cloudflare 链路不稳）
+      function attach(v) {
+        if (v.dataset.retryAttached) return;
+        v.dataset.retryAttached = '1';
+        var tries = 0;
+        v.addEventListener('error', function () {
+          if (tries >= 3) return;
+          tries += 1;
+          var base = v.getAttribute('src').split('?')[0];
+          setTimeout(function () {
+            v.src = base + '?retry=' + tries + '&t=' + Date.now();
+            v.load();
+          }, 800 * tries);
+        });
+      }
+      document.querySelectorAll('video').forEach(attach);
+      // 动态插入的上传列表视频
+      new MutationObserver(function (muts) {
+        muts.forEach(function (m) {
+          m.addedNodes && m.addedNodes.forEach(function (n) {
+            if (!n.querySelectorAll) return;
+            if (n.tagName === 'VIDEO') attach(n);
+            n.querySelectorAll && n.querySelectorAll('video').forEach(attach);
+          });
+        });
+      }).observe(document.body, { childList: true, subtree: true });
+    })();
+  </script>
+
+
+  <script>
+    function bindLikes() {
+      document.querySelectorAll('.like-btn').forEach(function (btn) {
+        if (btn.dataset.bound) return;
+        btn.dataset.bound = '1';
+        btn.addEventListener('click', function () {
+          var k = btn.getAttribute('data-post');
+          var isLocal = location.hostname === '127.0.0.1';
+          var root = isLocal ? 'http://127.0.0.1:8081' : '';
+          fetch(root + '/like', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ post: k }) })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+              if (d && d.ok) {
+                var b = btn.querySelector('b');
+                if (b) b.textContent = d.count;
+                btn.classList.toggle('liked', !!d.liked);
+              }
+            }).catch(function () {});
+        });
+      });
+    }
+    function attachVideoRetry() {
+      document.querySelectorAll('video').forEach(function (v) {
+        if (v.dataset.retry) return;
+        v.dataset.retry = '1';
+        var tries = 0;
+        v.addEventListener('error', function () {
+          if (tries >= 3) return;
+          tries += 1;
+          var b = (v.getAttribute('src') || '').split('?')[0];
+          setTimeout(function () { v.src = b + '?r=' + tries + '&t=' + Date.now(); v.load(); }, 800 * tries);
+        });
+      });
+    }
+  </script>
+
+  <script>
+    (function () {
+      var nameEl = document.getElementById('post-name');
+      var textEl = document.getElementById('post-text');
+      var fileEl = document.getElementById('post-file');
+      var btn = document.getElementById('post-btn');
+      var msg = document.getElementById('post-msg');
+      var listEl = document.getElementById('post-list');
+      var countEl = document.getElementById('post-count');
+      if (!btn || !listEl) return;
+
+      function base() { return location.hostname === '127.0.0.1' ? 'http://127.0.0.1:8081' : ''; }
+      function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+        });
+      }
+      function jget(path) {
+        return fetch(base() + path, { cache: 'no-store' }).then(function (r) {
+          if (!r.ok) throw new Error('bad');
+          return r.json();
+        });
+      }
+      function render(posts) {
+        if (!posts || !posts.length) {
+          listEl.innerHTML = '<div class="msg-empty">还没有动态，来发第一条吧～</div>';
+          if (countEl) countEl.textContent = '';
+          return;
+        }
+        if (countEl) countEl.textContent = posts.length + ' 条动态';
+        listEl.innerHTML = posts.map(function (p, i) {
+          var media = '';
+          if (p.media) {
+            if (p.kind === 'video') media = '<video controls preload="metadata" src="' + esc(p.media) + '"></video>';
+            else media = '<img class="post-img" loading="lazy" src="' + esc(p.media) + '" alt="">';
+          }
+          return '<article class="post"><header class="post-head"><div class="avatar-sm">' +
+            esc((p.name || '匿名').slice(0, 2)) + '</div><div class="who"><b>' + esc(p.name || '匿名') +
+            '</b><span>' + esc(p.time) + '</span></div></header>' +
+            (p.text ? '<p class="post-text">' + esc(p.text) + '</p>' : '') + media +
+            '<footer class="post-foot"><button class="like-btn" type="button" data-post="post' + p.id + '">❤️ <b>0</b></button></footer></article>';
+        }).join('');
+        bindLikes();
+        attachVideoRetry();
+      }
+      function load() {
+        jget('/posts').then(function (d) { render(d && d.posts); }).catch(function () {
+          listEl.innerHTML = '<div class="msg-empty">加载失败，点击刷新</div>';
+        });
+      }
+      load();
+
+      /* 分片上传（任意文件） */
+      var CHUNK = 2 * 1024 * 1024;
+      function uploadFile(file, onPct) {
+        var total = Math.ceil(file.size / CHUNK) || 1;
+        var id = 'p' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+        var index = 0;
+        return new Promise(function (resolve, reject) {
+          function step() {
+            if (index >= total) return;
+            var start = index * CHUNK;
+            var blob = file.slice(start, Math.min(start + CHUNK, file.size));
+            var url = base() + '/upload/chunk?id=' + encodeURIComponent(id) + '&index=' + index +
+                      '&total=' + total + '&name=' + encodeURIComponent(file.name);
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', url);
+            xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+            xhr.upload.onprogress = function (e) {
+              if (e.lengthComputable && onPct) {
+                onPct(Math.min(99, Math.round((index * CHUNK + e.loaded) / file.size * 100)));
+              }
+            };
+            xhr.onload = function () {
+              var d = null;
+              try { d = JSON.parse(xhr.responseText); } catch (e) {}
+              if (!d || !d.ok) { reject(new Error((d && d.error) || xhr.status)); return; }
+              index += 1;
+              if (d.done) { resolve(d.url); } else { step(); }
+            };
+            xhr.onerror = function () { reject(new Error('network')); };
+            xhr.send(blob);
+          }
+          step();
+        });
+      }
+
+      btn.addEventListener('click', function () {
+        var text = (textEl && textEl.value || '').trim();
+        var file = fileEl && fileEl.files && fileEl.files[0];
+        if (!text && !file) { msg.textContent = '写点什么或选个文件'; return; }
+        btn.disabled = true;
+        msg.textContent = '发布中…';
+
+        function send(media, kind) {
+          var body = JSON.stringify({ name: (nameEl.value || '').trim(), text: text, media: media || '', kind: kind || '' });
+          return fetch(base() + '/post', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body })
+            .then(function (r) { return r.json(); });
+        }
+
+        var mediaPromise = file
+          ? uploadFile(file, function (pct) { msg.textContent = '上传中… ' + pct + '%'; })
+          : Promise.resolve('');
+
+        mediaPromise.then(function (url) {
+          var kind = file ? (file.type.indexOf('video') === 0 ? 'video' : 'image') : '';
+          return send(url, kind);
+        }).then(function (d) {
+          btn.disabled = false;
+          if (d && d.ok) {
+            msg.textContent = '发布成功 ✅';
+            if (textEl) textEl.value = '';
+            if (fileEl) fileEl.value = '';
+            render(d.posts);
+          } else {
+            msg.textContent = '发布失败：' + ((d && d.error) || '未知错误');
+          }
+        }).catch(function (e) {
+          btn.disabled = false;
+          msg.textContent = '发布失败：' + (e && e.message || e);
+        });
+      });
     })();
   </script>
 
